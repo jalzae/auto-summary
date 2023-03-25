@@ -5,12 +5,47 @@ import * as fs from 'fs';
 import * as path from 'path';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
+
+
+interface Document {
+	realurl: string;
+	url: string;
+	function: string;
+	name: string;
+	code: string;
+	route: string;
+	method: string;
+	start: number;
+	end: number;
+}
+
+class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
+	private _onDidChangeTreeData: vscode.EventEmitter<Document | undefined> = new vscode.EventEmitter<Document | undefined>();
+	readonly onDidChangeTreeData: vscode.Event<Document | undefined> = this._onDidChangeTreeData.event;
+
+	constructor(private documents: Document[]) { }
+
+	refresh(): void {
+		this._onDidChangeTreeData.fire(undefined);
+	}
+
+	getTreeItem(element: Document): vscode.TreeItem {
+		const item = new vscode.TreeItem(element.name);
+		item.description = `${element.url} - ${element.function}`;
+		return item;
+	}
+
+	getChildren(element?: Document): Thenable<Document[]> {
+		return Promise.resolve(this.documents);
+	}
+}
+
+
 export function activate(context: vscode.ExtensionContext) {
 
 	console.log('Extension activated!');
 
 	const disposable = vscode.commands.registerCommand('document-summary.scanFiles', () => {
-
 		// get all the files in the workspace
 		vscode.workspace.findFiles('**/*').then((uriArray) => {
 			let items = [] as MyItem[]
@@ -18,18 +53,19 @@ export function activate(context: vscode.ExtensionContext) {
 			uriArray.forEach((fileUri) => {
 
 				// read the file content
-				let relativePath = ''
+
 				const fileContent = fs.readFileSync(fileUri.fsPath).toString();
-				const workspaceFolders = vscode.workspace.workspaceFolders;
-				if (workspaceFolders) {
-					const rootPath = workspaceFolders[0].uri.fsPath;
-					relativePath = path.relative(rootPath, fileUri.fsPath);
-				}
 
 				// search for //()SumStart
 				const startIndex = fileContent.indexOf('//()SumStart');
 				if (startIndex !== -1) {
-
+					
+					let relativePath = ''
+					const workspaceFolders = vscode.workspace.workspaceFolders;
+					if (workspaceFolders) {
+						const rootPath = workspaceFolders[0].uri.fsPath;
+						relativePath = path.relative(rootPath, fileUri.fsPath);
+					}
 					// search for //()SumFunc
 					const functionIndex = fileContent.indexOf('//()SumFunc:', startIndex);
 					const routeIndex = fileContent.indexOf('//()SumRoute:', startIndex);
@@ -78,13 +114,20 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 
 							items.push(item)
-
 						}
 					}
 				}
 			});
 
 			showItemList(items)
+
+			const treeDataProvider = new DocumentSummaryProvider(items);
+			vscode.window.registerTreeDataProvider('documentSummary', treeDataProvider);
+			vscode.commands.executeCommand('setContext', 'documentSummaryTreeViewVisible', true);
+			vscode.window.createTreeView('documentSummary', {
+				treeDataProvider,
+				showCollapseAll: true,
+			});
 		});
 	});
 
@@ -151,3 +194,7 @@ function showItemList(items: MyItem[]) {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
+
+
+
+
