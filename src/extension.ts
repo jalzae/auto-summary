@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { match } from 'assert';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 
@@ -47,77 +48,95 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const disposable = vscode.commands.registerCommand('document-summary.scanFiles', () => {
 		// get all the files in the workspace
-		vscode.workspace.findFiles('**/*').then((uriArray) => {
+		vscode.workspace.findFiles('**/*').then(async (uriArray) => {
 			let items = [] as MyItem[]
 			// loop through each file
-			uriArray.forEach((fileUri) => {
-
+			for (const fileUri of uriArray) {
 				// read the file content
+				const flContent = fs.readFileSync(fileUri.fsPath).toString();
+				// search for //()SumStart		
 
-				const fileContent = fs.readFileSync(fileUri.fsPath).toString();
+				const pattern = /\/\/\(\)SumStart.*?\/\/\(\)SumEnd/gs;
+				const matches = [...flContent.matchAll(pattern)].map(match => match[0].trim());
 
-				// search for //()SumStart
-				const startIndex = fileContent.indexOf('//()SumStart');
-				if (startIndex !== -1) {
-					
-					let relativePath = ''
-					const workspaceFolders = vscode.workspace.workspaceFolders;
-					if (workspaceFolders) {
-						const rootPath = workspaceFolders[0].uri.fsPath;
-						relativePath = path.relative(rootPath, fileUri.fsPath);
-					}
-					// search for //()SumFunc
-					const functionIndex = fileContent.indexOf('//()SumFunc:', startIndex);
-					const routeIndex = fileContent.indexOf('//()SumRoute:', startIndex);
-					const methodIndex = fileContent.indexOf('//()SumMethod:', startIndex);
-					const lineIndex = fileContent.substr(0, startIndex).split('\n').length - 1;
-					if (functionIndex !== -1) {
-						const functionNameStartIndex = functionIndex + '//()SumFunc:'.length;
-						const functionNameEndIndex = fileContent.indexOf("\n", functionNameStartIndex);
-						const functionName = fileContent.substring(functionNameStartIndex, functionNameEndIndex !== -1 ? functionNameEndIndex : undefined).trim();
+				let result: string[] = []
+				if (matches.length != 0) {
+					result = matches
+				}
 
-						let routeName = ''
-						if (routeIndex !== -1) {
-							const routeNameStartIndex = routeIndex + '//()SumRoute:'.length;
-							const routeNameEndIndex = fileContent.indexOf("\n", routeNameStartIndex);
-							routeName = fileContent.substring(routeNameStartIndex, routeNameEndIndex !== -1 ? routeNameEndIndex : undefined).trim();
-						}
+				if (result.length > 0) {
+					for (const [index, fileContent] of result.entries()) {
+						const startIndex = fileContent.indexOf('//()SumStart');
+						const endIndex = fileContent.indexOf('//()SumEnd');
 
-						let methodName = ''
-						if (methodIndex !== -1) {
-							const methodNameStartIndex = methodIndex + '//()SumMethod:'.length;
-							const methodNameEndIndex = fileContent.indexOf("\n", methodNameStartIndex);
-							methodName = fileContent.substring(methodNameStartIndex, methodNameEndIndex !== -1 ? methodNameEndIndex : undefined).trim();
-						}
-						// search for //()SumEnd
-						const endIndex = fileContent.indexOf('//()SumEnd', functionIndex);
-						const lineEnd = fileContent.substr(0, endIndex).split('\n').length - 1;
-						if (endIndex !== -1) {
+						const textDocument = await vscode.workspace.openTextDocument(fileUri);
+						const content = textDocument.getText();
+						const index = content.indexOf(fileContent);
+						const startLine = textDocument.positionAt(index).line;
+						const endLine = textDocument.positionAt(index + fileContent.length).line;
 
-							const code = fileContent.substring(functionIndex + 12, endIndex).trim()
-							const match = code.match(/SumFunc:(.*)/);
-							const functionOnCode = match ? match[1].trim() : null;
-							const stringWithoutFunctionName = code.replace(functionName, "");
-							const lines = stringWithoutFunctionName.split('\n').filter(line => !line.trim().startsWith('//'));
-							const resultCode = lines.join('\n');
-
-							const item = {
-								realurl: fileUri.fsPath,
-								url: relativePath,
-								function: functionName,
-								name: functionOnCode || '',
-								code: resultCode,
-								start: lineIndex,
-								end: lineEnd,
-								route: routeName || '',
-								method: methodName || '',
+						if (startIndex !== -1 && endIndex !== -1) {
+							let relativePath = ''
+							const workspaceFolders = vscode.workspace.workspaceFolders;
+							if (workspaceFolders) {
+								const rootPath = workspaceFolders[0].uri.fsPath;
+								relativePath = path.relative(rootPath, fileUri.fsPath);
 							}
+							// search for //()SumFunc
+							const functionIndex = fileContent.indexOf('//()SumFunc:', startIndex);
+							const routeIndex = fileContent.indexOf('//()SumRoute:', startIndex);
+							const methodIndex = fileContent.indexOf('//()SumMethod:', startIndex);
 
-							items.push(item)
+							if (functionIndex !== -1) {
+								const functionNameStartIndex = functionIndex + '//()SumFunc:'.length;
+								const functionNameEndIndex = fileContent.indexOf("\n", functionNameStartIndex);
+								const functionName = fileContent.substring(functionNameStartIndex, functionNameEndIndex !== -1 ? functionNameEndIndex : undefined).trim();
+
+								let routeName = ''
+								if (routeIndex !== -1) {
+									const routeNameStartIndex = routeIndex + '//()SumRoute:'.length;
+									const routeNameEndIndex = fileContent.indexOf("\n", routeNameStartIndex);
+									routeName = fileContent.substring(routeNameStartIndex, routeNameEndIndex !== -1 ? routeNameEndIndex : undefined).trim();
+								}
+
+								let methodName = ''
+								if (methodIndex !== -1) {
+									const methodNameStartIndex = methodIndex + '//()SumMethod:'.length;
+									const methodNameEndIndex = fileContent.indexOf("\n", methodNameStartIndex);
+									methodName = fileContent.substring(methodNameStartIndex, methodNameEndIndex !== -1 ? methodNameEndIndex : undefined).trim();
+								}
+								// search for //()SumEnd
+
+								const code = fileContent.substring(functionIndex + 12, endIndex).trim()
+								const match = code.match(/SumFunc:(.*)/);
+								const functionOnCode = match ? match[1].trim() : null;
+								const stringWithoutFunctionName = code.replace(functionName, "");
+								const lines = stringWithoutFunctionName.split('\n').filter(line => !line.trim().startsWith('//'));
+								const resultCode = lines.join('\n');
+
+								const item = {
+									realurl: fileUri.fsPath,
+									url: relativePath,
+									function: functionName,
+									name: functionOnCode || '',
+									code: resultCode,
+									start: startLine,
+									end: endLine,
+									route: routeName || '',
+									method: methodName || '',
+								}
+
+
+
+								items.push(item)
+
+							}
+						} else if (startIndex !== -1) {
+							console.warn(`File ${fileUri} has a start comment without an end comment. Skipping...`);
 						}
 					}
 				}
-			});
+			}
 
 			showItemList(items)
 
