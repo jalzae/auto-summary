@@ -17,14 +17,8 @@
         "command": "document-summary.scanFiles",
         "title": "Scan Summary"
       }
-    ],
-    "views": {
-      "document-summary.itemList": {
-        "id": "document-summary.itemList",
-        "name": "List Function",
-        "icon": "resources/icons/treeview.svg"
-      }
-    }
+    ]
+    
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

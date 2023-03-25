@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-
+import * as path from 'path';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -18,7 +18,13 @@ export function activate(context: vscode.ExtensionContext) {
 			uriArray.forEach((fileUri) => {
 
 				// read the file content
+				let relativePath = ''
 				const fileContent = fs.readFileSync(fileUri.fsPath).toString();
+				const workspaceFolders = vscode.workspace.workspaceFolders;
+				if (workspaceFolders) {
+					const rootPath = workspaceFolders[0].uri.fsPath;
+					relativePath = path.relative(rootPath, fileUri.fsPath);
+				}
 
 				// search for //()SumStart
 				const startIndex = fileContent.indexOf('//()SumStart');
@@ -26,20 +32,30 @@ export function activate(context: vscode.ExtensionContext) {
 
 					// search for //()SumFunc
 					const functionIndex = fileContent.indexOf('//()SumFunc:', startIndex);
+					const lineIndex = fileContent.substr(0, startIndex).split('\n').length - 1;
 					if (functionIndex !== -1) {
+						const functionNameStartIndex = functionIndex + '//()SumFunc:'.length;
+						const functionNameEndIndex = fileContent.indexOf("\n", functionNameStartIndex);
+						const functionName = fileContent.substring(functionNameStartIndex, functionNameEndIndex !== -1 ? functionNameEndIndex : undefined).trim();
 
 						// search for //()SumEnd
 						const endIndex = fileContent.indexOf('//()SumEnd', functionIndex);
+						const lineEnd = fileContent.substr(0, endIndex).split('\n').length - 1;
 						if (endIndex !== -1) {
 
-							// extract the function name and code
-							const functionName = fileContent.substring(functionIndex + 12, endIndex).trim();
-							const code = fileContent.substring(startIndex + 13, endIndex).trim();
+							const code = fileContent.substring(functionIndex + 12, endIndex).trim()
+							const match = code.match(/SumFunc:(.*)/);
+							const functionOnCode = match ? match[1].trim() : null;
+							const stringWithoutFunctionName = code.replace(functionName, "");
 
 							const item = {
-								url: fileUri.fsPath,
+								realurl: fileUri.fsPath,
+								url: relativePath,
 								function: functionName,
-								code: code
+								name: functionOnCode || '',
+								code: stringWithoutFunctionName,
+								start: lineIndex,
+								end: lineEnd,
 							}
 
 							items.push(item)
@@ -57,16 +73,20 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 interface MyItem {
+	realurl: string;
 	url: string;
 	function: string;
+	name: string;
 	code: string;
+	start: number;
+	end: number;
 }
 
 function showItemList(items: MyItem[]) {
 	// Create the webview panel
 	const webviewPanel = vscode.window.createWebviewPanel(
 		'document-summary.itemList',
-		'My Item List',
+		'My Documentation List',
 		vscode.ViewColumn.Beside,
 		{}
 	);
@@ -74,9 +94,11 @@ function showItemList(items: MyItem[]) {
 	// Create an HTML string to display the list
 	let html = '<ul>';
 	for (let item of items) {
-		html += `<li>${item.url}</li>`;
-		html += `<li>${item.function} </li>`;
-		html += `<li>${item.code}</li>`;
+		html +=`<li><div>`
+		html += `<p>${item.url} : ${item.start}-${item.end}</p>`;
+		html += `<p>${item.function} </p>`;
+		html += `<p>${item.code}</p>`;
+		html +=`</div></li>`
 	}
 	html += '</ul>';
 
