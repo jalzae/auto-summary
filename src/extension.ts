@@ -32,12 +32,27 @@ export function activate(context: vscode.ExtensionContext) {
 
 					// search for //()SumFunc
 					const functionIndex = fileContent.indexOf('//()SumFunc:', startIndex);
+					const routeIndex = fileContent.indexOf('//()SumRoute:', startIndex);
+					const methodIndex = fileContent.indexOf('//()SumMethod:', startIndex);
 					const lineIndex = fileContent.substr(0, startIndex).split('\n').length - 1;
 					if (functionIndex !== -1) {
 						const functionNameStartIndex = functionIndex + '//()SumFunc:'.length;
 						const functionNameEndIndex = fileContent.indexOf("\n", functionNameStartIndex);
 						const functionName = fileContent.substring(functionNameStartIndex, functionNameEndIndex !== -1 ? functionNameEndIndex : undefined).trim();
 
+						let routeName = ''
+						if (routeIndex !== -1) {
+							const routeNameStartIndex = routeIndex + '//()SumRoute:'.length;
+							const routeNameEndIndex = fileContent.indexOf("\n", routeNameStartIndex);
+							routeName = fileContent.substring(routeNameStartIndex, routeNameEndIndex !== -1 ? routeNameEndIndex : undefined).trim();
+						}
+
+						let methodName = ''
+						if (methodIndex !== -1) {
+							const methodNameStartIndex = methodIndex + '//()SumMethod:'.length;
+							const methodNameEndIndex = fileContent.indexOf("\n", methodNameStartIndex);
+							methodName = fileContent.substring(methodNameStartIndex, methodNameEndIndex !== -1 ? methodNameEndIndex : undefined).trim();
+						}
 						// search for //()SumEnd
 						const endIndex = fileContent.indexOf('//()SumEnd', functionIndex);
 						const lineEnd = fileContent.substr(0, endIndex).split('\n').length - 1;
@@ -58,6 +73,8 @@ export function activate(context: vscode.ExtensionContext) {
 								code: resultCode,
 								start: lineIndex,
 								end: lineEnd,
+								route: routeName || '',
+								method: methodName || '',
 							}
 
 							items.push(item)
@@ -80,6 +97,8 @@ interface MyItem {
 	function: string;
 	name: string;
 	code: string;
+	route: string;
+	method: string;
 	start: number;
 	end: number;
 }
@@ -106,6 +125,8 @@ function showItemList(items: MyItem[]) {
 		html += `<li><div>`
 		html += `<p>${item.url} : ${item.start}-${item.end}</p>`;
 		html += `<p>${item.function} </p>`;
+		html += `<p>Route :${item.route} </p>`;
+		html += `<p>Method :${item.method} </p>`;
 		html += `<p>${item.code}</p>`;
 		html += `</div></li>`
 	}
