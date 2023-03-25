@@ -31,6 +31,10 @@
       {
         "command": "documentSummary.showTreeView",
         "title": "Show Document Summary Tree View"
+      },
+      {
+        "command": "document-summary.openFile",
+        "title": "Open Child"
       }
     ]
   },

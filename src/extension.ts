@@ -31,9 +31,16 @@ class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 	}
 
 	getTreeItem(element: Document): vscode.TreeItem {
-		const item = new vscode.TreeItem(element.name);
-		item.description = `${element.url} - ${element.function}`;
-		return item;
+		const treeItem = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.None);
+		treeItem.description = `${element.url} - @${element.function}`;
+		treeItem.command = {
+			command: 'document-summary.openFile',
+			title: 'Open File',
+			arguments: [element] // pass the element as an argument to the command
+		};
+		return treeItem;
+
+
 	}
 
 	getChildren(element?: Document): Thenable<Document[]> {
@@ -42,9 +49,21 @@ class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 }
 
 
+
+
 export function activate(context: vscode.ExtensionContext) {
 
 	console.log('Extension activated!');
+
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (documentSummary: Document) => {
+		vscode.workspace.openTextDocument(documentSummary.realurl).then((doc) => {
+			vscode.window.showTextDocument(doc).then((editor) => {
+				const position = new vscode.Position(documentSummary.start, 0);
+				editor.selection = new vscode.Selection(position, position);
+				editor.revealRange(new vscode.Range(position, position));
+			});
+		});
+	}));
 
 	const disposable = vscode.commands.registerCommand('document-summary.scanFiles', () => {
 		// get all the files in the workspace
