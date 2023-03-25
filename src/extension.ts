@@ -47,13 +47,15 @@ export function activate(context: vscode.ExtensionContext) {
 							const match = code.match(/SumFunc:(.*)/);
 							const functionOnCode = match ? match[1].trim() : null;
 							const stringWithoutFunctionName = code.replace(functionName, "");
+							const lines = stringWithoutFunctionName.split('\n').filter(line => !line.trim().startsWith('//'));
+							const resultCode = lines.join('\n');
 
 							const item = {
 								realurl: fileUri.fsPath,
 								url: relativePath,
 								function: functionName,
 								name: functionOnCode || '',
-								code: stringWithoutFunctionName,
+								code: resultCode,
 								start: lineIndex,
 								end: lineEnd,
 							}
@@ -88,26 +90,42 @@ function showItemList(items: MyItem[]) {
 		'document-summary.itemList',
 		'My Documentation List',
 		vscode.ViewColumn.Beside,
-		{}
+		{
+			enableScripts: true,
+			retainContextWhenHidden: true,
+		}
 	);
 
 	// Create an HTML string to display the list
-	let html = '<ul>';
+	let html = `
+    <html>
+      <body>
+        
+	<ul>`;
 	for (let item of items) {
-		html +=`<li><div>`
+		html += `<li><div>`
 		html += `<p>${item.url} : ${item.start}-${item.end}</p>`;
 		html += `<p>${item.function} </p>`;
 		html += `<p>${item.code}</p>`;
-		html +=`</div></li>`
+		html += `</div></li>`
 	}
 	html += '</ul>';
-
+	html += `</body>
+    </html>`
 	// Set the HTML content of the webview panel
 	webviewPanel.webview.html = html;
+
+	// get the path to the .vscode directory of the current workspace
+	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode';
+
+	// create the directory if it doesn't exist
+	if (!fs.existsSync(vscodePath)) {
+		fs.mkdirSync(vscodePath);
+	}
+
+	// write the HTML content to a file in the .vscode directory
+	fs.writeFileSync(vscodePath + '/auto-summary.html', html);
 }
-
-
-
 
 
 // This method is called when your extension is deactivated
