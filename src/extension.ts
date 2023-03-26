@@ -125,17 +125,13 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			}
 
-			const result = destructed.reduce((acc: any, item: any) => {
-				const { parent, ...rest } = item;
-				const group = acc.find((g: any) => g.parent === parent);
-				if (group) {
-					group.destructed.push(rest);
-				} else {
-					acc.push({ title: parent, items: [rest] });
-				}
-				return acc;
-			}, []);
+			const uniquePeople = Array.from(new Set(destructed.map((person: any) => person.parent)));
 
+			const result: any = [];
+			uniquePeople.forEach((e: any) => {
+				const resultFilter = (destructed.filter((el: any) => el.parent == e)).map(({ parent, ...rest } = destructed) => rest);
+				result.push({ title: e, items: resultFilter })
+			})
 			makeArray(result);
 
 		});
