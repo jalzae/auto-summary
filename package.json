@@ -35,6 +35,10 @@
       {
         "command": "document-summary.openFile",
         "title": "Open Child"
+      },
+      {
+        "command": "document-summary.generateTest",
+        "title": "Generate Test JSON"
       }
     ]
   },
