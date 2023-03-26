@@ -53,7 +53,7 @@ class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 
 export function activate(context: vscode.ExtensionContext) {
 
-	console.log('Extension activated!');
+	console.log('Auto Summary Extension activated!');
 
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (documentSummary: Document) => {
 		vscode.workspace.openTextDocument(documentSummary.realurl).then((doc) => {
@@ -107,8 +107,10 @@ export function activate(context: vscode.ExtensionContext) {
 			items = await runner(uriArray);
 
 			const destructed = [] as any;
+
 			for (const item of items) {
 				if (item.route != '' && item.method != '' && item.function != '') {
+
 					destructed.push({
 						parent: item.url,
 						title: item.function,
@@ -204,21 +206,21 @@ async function runner(uriArray: any) {
 
 						let afterMethod = ''
 						if (afterMethodIndex !== -1) {
-							const afterMethodStartIndex = afterMethodIndex + '//()SumAfter:'.length;
+							const afterMethodStartIndex = afterMethodIndex + '//()after:'.length;
 							const afterMethodEndIndex = fileContent.indexOf("\n", afterMethodStartIndex);
 							afterMethod = fileContent.substring(afterMethodStartIndex, afterMethodEndIndex !== -1 ? afterMethodEndIndex : undefined).trim();
 						}
 
 						let beforeMethod = ''
 						if (beforeMethodIndex !== -1) {
-							const beforeMethodStartIndex = beforeMethodIndex + '//()SumAfter:'.length;
+							const beforeMethodStartIndex = beforeMethodIndex + '//()before:'.length;
 							const beforeMethodEndIndex = fileContent.indexOf("\n", beforeMethodStartIndex);
 							beforeMethod = fileContent.substring(beforeMethodStartIndex, beforeMethodEndIndex !== -1 ? beforeMethodEndIndex : undefined).trim();
 						}
 
 						let bodyMethod = ''
 						if (bodyMethodIndex !== -1) {
-							const bodyMethodStartIndex = bodyMethodIndex + '//()SumAfter:'.length;
+							const bodyMethodStartIndex = bodyMethodIndex + '//()body:'.length;
 							const bodyMethodEndIndex = fileContent.indexOf("\n", bodyMethodStartIndex);
 							bodyMethod = fileContent.substring(bodyMethodStartIndex, bodyMethodEndIndex !== -1 ? bodyMethodEndIndex : undefined).trim();
 						}
