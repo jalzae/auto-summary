@@ -284,37 +284,26 @@ function makeArray(items: any) {
 }
 
 function showItemList(items: MyItem[]) {
-	// Create the webview panel
-	const webviewPanel = vscode.window.createWebviewPanel(
-		'document-summary.itemList',
-		'My Documentation List',
-		vscode.ViewColumn.Beside,
-		{
-			enableScripts: true,
-			retainContextWhenHidden: true,
-		}
-	);
 
-	// Create an HTML string to display the list
-	let html = `
-    <html>
-      <body>
-        
-	<ul>`;
+	let datas: any = {}
+
 	for (let item of items) {
-		html += `<li><div>`
-		html += `<p>${item.url} : ${item.start}-${item.end}</p>`;
-		html += `<p>${item.function} </p>`;
-		html += `<p>Route :${item.route} </p>`;
-		html += `<p>Method :${item.method} </p>`;
-		html += `<p>${item.code}</p>`;
-		html += `</div></li>`
+		if (item.route != '' && item.method != '' && item.function != '') {
+			datas[item.route] = {
+				[item.method.toLowerCase()]: {
+					"summary": item.function,
+					"operationId": item.function.trim(),
+					"tags": [
+						item.url
+					],
+					responses: {
+						200: { description: item.body }
+					}
+				},
+			}
+		}
 	}
-	html += '</ul>';
-	html += `</body>
-    </html>`
-	// Set the HTML content of the webview panel
-	webviewPanel.webview.html = html;
+
 
 	// get the path to the .vscode directory of the current workspace
 	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode';
@@ -325,7 +314,59 @@ function showItemList(items: MyItem[]) {
 	}
 
 	// write the HTML content to a file in the .vscode directory
+	const html = makeSwagger();
 	fs.writeFileSync(vscodePath + '/auto-summary.html', html);
+	fs.writeFileSync(vscodePath + '/data.js', `var spec={
+		"openapi": "3.0.1",
+			"info": {
+			"version": "1.0.0",
+				"title": "API Specification Example"
+		},
+		"paths":${JSON.stringify(datas)}}`);
+}
+
+function makeSwagger() {
+	var html = `<html>
+
+<head>
+  <meta charset="UTF-8">
+	<title>Summary</title>
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css">
+  <style>
+    .topbar {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js"> </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js"> </script>
+  <script src="./data.js"> </script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        spec: spec,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      })
+      window.ui = ui
+    }
+  </script>
+</body>
+
+</html>`;
+
+	return html;
 }
 
 
