@@ -2,8 +2,9 @@
   "name": "document-summary",
   "displayName": "Document Summary",
   "description": "to automate document your function code",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "Jalzae",
+  "icon": "Safeimagekit-resized-img.png",
   "engines": {
     "vscode": "^1.76.0"
   },
