@@ -4,11 +4,22 @@ This is the README for  extension "document-summary".
 
 ## Features
 1. Scan Summary that result webpage contain function summary code 
-`
-Start code //()SumStart
-Function or description 
-//()SumFunc: function name
-Ended with Read //()SumEnd
-`
+  - //()SumStart
+    Buat diawal kode
+  - //()SumFunc: Nama Fungsi
+  - //()SumRoute: routeFungsi
+  - //()SumMethod: 
+    GET/POST/DELETE/PUT
+  - //()after:
+     ["assign","assignall","dll"]
+  - //()before: 
+     ["fungsi"]
+  - //()body: 
+     {"sample":"sample"}
+  - //()SumEnd 
+    Buat diakhir kode
 
-2. Generate JSON data for Generate Testing Tools Soon
+  ![Preview Image](./Preview.jpg)
+
+1. Generate JSON data for Generate Testing Tools Soon
+   - Command > Generate Test JSON
