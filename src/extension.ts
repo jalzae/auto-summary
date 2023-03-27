@@ -297,7 +297,8 @@ function showItemList(items: MyItem[]) {
 						item.url
 					],
 					responses: {
-						200: { description: item.body }
+						"body": { description: item.body },
+						"code": { description: item.code },
 					}
 				},
 			}
@@ -320,9 +321,24 @@ function showItemList(items: MyItem[]) {
 		"openapi": "3.0.1",
 			"info": {
 			"version": "1.0.0",
-				"title": "API Specification Example"
+				"title": "API Specification"
 		},
 		"paths":${JSON.stringify(datas)}}`);
+
+	// Check if the file exists
+	const filePath = vscodePath + '/auto-summary.html'
+	if (fs.existsSync(filePath)) {
+		// Get the URI of the file
+		const fileUri = vscode.Uri.file(filePath);
+
+		// Convert the URI to a URL
+		const url = fileUri.toString();
+
+		// Open the URL in the user's default web browser
+		vscode.env.openExternal(vscode.Uri.parse(url));
+	} else {
+		vscode.window.showErrorMessage(`File ${filePath} does not exist`);
+	}
 }
 
 function makeSwagger() {
