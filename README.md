@@ -21,5 +21,5 @@ This is the README for  extension "document-summary".
 
   ![Preview Image](./Preview.jpg)
 
-1. Generate JSON data for Generate Testing Tools Soon
+2. Generate JSON data for Generate Testing Tools Soon
    - Command > Generate Test JSON
