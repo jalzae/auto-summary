@@ -6,51 +6,6 @@ import * as path from 'path';
 import { match } from 'assert';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-
-
-interface Document {
-	realurl: string;
-	url: string;
-	function: string;
-	name: string;
-	code: string;
-	route: string;
-	method: string;
-	start: number;
-	end: number;
-}
-
-class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
-	private _onDidChangeTreeData: vscode.EventEmitter<Document | undefined> = new vscode.EventEmitter<Document | undefined>();
-	readonly onDidChangeTreeData: vscode.Event<Document | undefined> = this._onDidChangeTreeData.event;
-
-	constructor(private documents: Document[]) { }
-
-	refresh(): void {
-		this._onDidChangeTreeData.fire(undefined);
-	}
-
-	getTreeItem(element: Document): vscode.TreeItem {
-		const treeItem = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.None);
-		treeItem.description = `${element.url} - @${element.function}`;
-		treeItem.command = {
-			command: 'document-summary.openFile',
-			title: 'Open File',
-			arguments: [element] // pass the element as an argument to the command
-		};
-		return treeItem;
-
-
-	}
-
-	getChildren(element?: Document): Thenable<Document[]> {
-		return Promise.resolve(this.documents);
-	}
-}
-
-
-
-
 export function activate(context: vscode.ExtensionContext) {
 
 	console.log('Auto Summary Extension activated!');
@@ -72,6 +27,19 @@ export function activate(context: vscode.ExtensionContext) {
 				// loop through each file
 				items = await runner(uriArray);
 				generateTsFunction(items)
+			});
+		} catch (error) {
+			vscode.window.showErrorMessage("its error when want to generate it");
+		}
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateJsJsonApi', (documentSummary: Document) => {
+		try {
+			vscode.workspace.findFiles('**/*').then(async (uriArray) => {
+				let items = [] as MyItem[]
+				// loop through each file
+				items = await runner(uriArray);
+				generateTsFunction(items,'js')
 			});
 		} catch (error) {
 			vscode.window.showErrorMessage("its error when want to generate it");
@@ -162,13 +130,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 }
 
-async function generateTsFunction(items: MyItem[]) {
-	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/ts';
-	// create the directory if it doesn't exist
-	if (!fs.existsSync(vscodePath)) {
-		fs.mkdirSync(vscodePath);
-	}
-
+async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
+	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/' + extension + '/';
 	const destructed = [] as any;
 
 	for (const item of items) {
@@ -223,8 +186,13 @@ async function generateTsFunction(items: MyItem[]) {
 			content += `},`
 		}
 		content += `}`
-
-		fs.writeFileSync(vscodePath + `/${formatname}.ts`, content);
+		const outputString = result.title.replace(/\\[^\\]+$/, '').replace(/\\/g, '/');
+		const combinedPath = vscodePath + outputString;
+		// create the directory if it doesn't exist
+		if (!fs.existsSync(combinedPath)) {
+			fs.mkdirSync(combinedPath);
+		}
+		fs.writeFileSync(combinedPath + `/${formatname}.${extension}`, content);
 	}
 
 }
@@ -497,6 +465,47 @@ function makeSwagger() {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
+
+
+interface Document {
+	realurl: string;
+	url: string;
+	function: string;
+	name: string;
+	code: string;
+	route: string;
+	method: string;
+	start: number;
+	end: number;
+}
+
+class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
+	private _onDidChangeTreeData: vscode.EventEmitter<Document | undefined> = new vscode.EventEmitter<Document | undefined>();
+	readonly onDidChangeTreeData: vscode.Event<Document | undefined> = this._onDidChangeTreeData.event;
+
+	constructor(private documents: Document[]) { }
+
+	refresh(): void {
+		this._onDidChangeTreeData.fire(undefined);
+	}
+
+	getTreeItem(element: Document): vscode.TreeItem {
+		const treeItem = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.None);
+		treeItem.description = `${element.url} - @${element.function}`;
+		treeItem.command = {
+			command: 'document-summary.openFile',
+			title: 'Open File',
+			arguments: [element] // pass the element as an argument to the command
+		};
+		return treeItem;
+
+
+	}
+
+	getChildren(element?: Document): Thenable<Document[]> {
+		return Promise.resolve(this.documents);
+	}
+}
 
 
 
