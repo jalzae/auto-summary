@@ -2,7 +2,7 @@
   "name": "document-summary",
   "displayName": "Document Summary",
   "description": "to automate document your function code",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "Jalzae",
   "icon": "Safeimagekit-resized-img.png",
   "engines": {
@@ -27,11 +27,11 @@
     "commands": [
       {
         "command": "document-summary.scanFiles",
-        "title": "Scan Summary"
+        "title": "Generate Summary"
       },
       {
         "command": "documentSummary.showTreeView",
-        "title": "Show Document Summary Tree View"
+        "title": "Generate Summary Tree View"
       },
       {
         "command": "document-summary.openFile",
@@ -40,6 +40,10 @@
       {
         "command": "document-summary.generateTest",
         "title": "Generate Test JSON"
+      },
+      {
+        "command": "document-summary.generateTsJsonApi",
+        "title": "Generate TS JSON API"
       }
     ]
   },

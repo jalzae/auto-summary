@@ -65,6 +65,19 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	}));
 
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateTsJsonApi', (documentSummary: Document) => {
+		try {
+			vscode.workspace.findFiles('**/*').then(async (uriArray) => {
+				let items = [] as MyItem[]
+				// loop through each file
+				items = await runner(uriArray);
+				generateTsFunction(items)
+			});
+		} catch (error) {
+			vscode.window.showErrorMessage("its error when want to generate it");
+		}
+	}));
+
 	const disposable = vscode.commands.registerCommand('documentSummary.showTreeView', () => {
 		vscode.workspace.findFiles('**/*').then(async (uriArray) => {
 			let items = [] as MyItem[]
@@ -86,9 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 			let items = [] as MyItem[]
 			// loop through each file
 			items = await runner(uriArray);
-
 			showItemList(items)
-
 			const treeDataProvider = new DocumentSummaryProvider(items);
 			vscode.window.registerTreeDataProvider('documentSummary', treeDataProvider);
 			vscode.commands.executeCommand('setContext', 'documentSummaryTreeViewVisible', true);
@@ -139,6 +150,93 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 }
+
+async function generateTsFunction(items: MyItem[]) {
+	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/ts';
+	// create the directory if it doesn't exist
+	if (!fs.existsSync(vscodePath)) {
+		fs.mkdirSync(vscodePath);
+	}
+
+	const destructed = [] as any;
+
+	for (const item of items) {
+		if (item.route != '' && item.method != '' && item.function != '') {
+			destructed.push({
+				parent: item.url,
+				title: item.function,
+				method: item.method,
+				url: item.route,
+				name: item.name,
+				code: item.code
+			})
+		}
+	}
+
+	const uniquePeople = Array.from(new Set(destructed.map((person: any) => person.parent)));
+
+	const result: any = [];
+	uniquePeople.forEach((e: any) => {
+		const resultFilter = (destructed.filter((el: any) => el.parent == e)).map(({ parent, ...rest } = destructed) => rest);
+		result.push({ title: e, items: resultFilter })
+	})
+
+	for (const item of result) {
+		const fileName = item.title.split('\\').pop(); // get the file name with extension
+		const name = fileName.split('.').shift(); // remove the extension and get the name
+		const formatname = name.toLowerCase()
+		let content = `export default {`
+		for (const i of item.items) {
+			content += `${formatname}${getLastFunction(i.url)}(`
+			//cek :id 
+			if (checkIdExist(i.url)) {
+				content += `id:any,`
+			}
+			//cek post or put 
+			if (i.method == "POST" || i.method == "PUT") content += `data:any`
+			content += `){ return {`
+			content += `method:"${i.method}",`
+			//cek post or put
+			if (i.method == "GET" || i.method == "PUT" || i.method == "POST" || i.method == "DELETE") {
+				if (checkIdExist(i.url)) {
+					const replacedStr = i.url.replace("/:id", `"+id`);
+					content += `url:"${replacedStr}`
+				} else {
+					content += `url:"${i.url}"`
+				}
+			} else {
+				content += `url:"${i.url}"`
+			}
+			if (i.method == "POST" || i.method == "PUT") content += `,data`
+			content += `}`
+			content += `},`
+		}
+		content += `}`
+	
+		fs.writeFileSync(vscodePath + `/${formatname}.ts`, content);
+	}
+
+}
+
+function checkIdExist(route: string): boolean {
+	const idPattern = /\/:id/;
+	return idPattern.test(route);
+}
+
+function getLastFunction(route: string) {
+
+	let lastFunction = "";
+	const parts = route.split('/');
+	const lastPart = parts[parts.length - 1];
+
+	if (lastPart.startsWith(':')) {
+		lastFunction = parts[parts.length - 2];
+	} else {
+		lastFunction = parts[parts.length - 1];
+	}
+	return lastFunction;
+}
+
 
 async function runner(uriArray: any) {
 	let items = [] as MyItem[]
