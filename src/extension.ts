@@ -122,6 +122,17 @@ export function activate(context: vscode.ExtensionContext) {
 			for (const item of items) {
 				if (item.route != '' && item.method != '' && item.function != '') {
 
+					const jsonRegex = new RegExp('^(?:[{}[\\],:]|null|true|false|"(?:[^"\\\\]|\\\\.)*"\\s*)*$', 'g');
+					if (!jsonRegex.test(item.body)) {
+						vscode.window.showErrorMessage('Invalid Body JSON string!:' + item.function);
+					}
+					if (!jsonRegex.test(item.after)) {
+						vscode.window.showErrorMessage('Invalid after JSON string!:' + item.function);
+					}
+					if (!jsonRegex.test(item.before)) {
+						vscode.window.showErrorMessage('Invalid Before JSON string!:' + item.function);
+					}
+
 					destructed.push({
 						parent: item.url,
 						title: item.function,
@@ -212,7 +223,7 @@ async function generateTsFunction(items: MyItem[]) {
 			content += `},`
 		}
 		content += `}`
-	
+
 		fs.writeFileSync(vscodePath + `/${formatname}.ts`, content);
 	}
 
