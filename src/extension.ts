@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 				let items = [] as MyItem[]
 				// loop through each file
 				items = await runner(uriArray);
-				generateTsFunction(items,'js')
+				generateTsFunction(items, 'js')
 			});
 		} catch (error) {
 			vscode.window.showErrorMessage("its error when want to generate it");
@@ -84,45 +84,37 @@ export function activate(context: vscode.ExtensionContext) {
 			let items = [] as MyItem[]
 			// loop through each file
 			items = await runner(uriArray);
+			try {
 
-			const destructed = [] as any;
+				const destructed = [] as any;
 
-			for (const item of items) {
-				if (item.route != '' && item.method != '' && item.function != '') {
-
-					const jsonRegex = new RegExp('^(?:[{}[\\],:]|null|true|false|"(?:[^"\\\\]|\\\\.)*"\\s*)*$', 'g');
-					if (!jsonRegex.test(item.body)) {
-						vscode.window.showErrorMessage('Invalid Body JSON string!:' + item.function);
+				for (const item of items) {
+					if (item.route != '' && item.method != '' && item.function != '') {
+						destructed.push({
+							parent: item.url,
+							title: item.function,
+							method: item.method,
+							url: item.route,
+							header: [],
+							after: JSON.parse(item.after),
+							before: JSON.parse(item.before),
+							body: JSON.parse(item.body),
+							expected: 200
+						})
 					}
-					if (!jsonRegex.test(item.after)) {
-						vscode.window.showErrorMessage('Invalid after JSON string!:' + item.function);
-					}
-					if (!jsonRegex.test(item.before)) {
-						vscode.window.showErrorMessage('Invalid Before JSON string!:' + item.function);
-					}
-
-					destructed.push({
-						parent: item.url,
-						title: item.function,
-						method: item.method,
-						url: item.route,
-						header: [],
-						after: item.after != '' ? JSON.parse(item.after) : [],
-						before: item.before != '' ? JSON.parse(item.before) : [],
-						body: item.body != '' ? JSON.parse(item.body) : {},
-						expected: 200
-					})
 				}
+
+				const uniquePeople = Array.from(new Set(destructed.map((person: any) => person.parent)));
+
+				const result: any = [];
+				uniquePeople.forEach((e: any) => {
+					const resultFilter = (destructed.filter((el: any) => el.parent == e)).map(({ parent, ...rest } = destructed) => rest);
+					result.push({ title: e, items: resultFilter })
+				})
+				makeArray(result);
+			} catch (e) {
+				console.log(e)
 			}
-
-			const uniquePeople = Array.from(new Set(destructed.map((person: any) => person.parent)));
-
-			const result: any = [];
-			uniquePeople.forEach((e: any) => {
-				const resultFilter = (destructed.filter((el: any) => el.parent == e)).map(({ parent, ...rest } = destructed) => rest);
-				result.push({ title: e, items: resultFilter })
-			})
-			makeArray(result);
 
 		});
 	});
@@ -131,7 +123,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
-	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/' + extension + '/';
 	const destructed = [] as any;
 
 	for (const item of items) {
@@ -186,12 +177,12 @@ async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
 			content += `},`
 		}
 		content += `}`
-		const outputString = result.title.replace(/\\[^\\]+$/, '').replace(/\\/g, '/');
-		const combinedPath = vscodePath + outputString;
+		const outputString = item.title.replace(/\\[^\\]+$/, '').replace(/\\/g, '/');
+		const combinedPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/' + extension + '/' + outputString;
 		// create the directory if it doesn't exist
-		if (!fs.existsSync(combinedPath)) {
-			fs.mkdirSync(combinedPath);
-		}
+
+		createDirectoryPath(combinedPath);
+
 		fs.writeFileSync(combinedPath + `/${formatname}.${extension}`, content);
 	}
 
@@ -214,6 +205,21 @@ function getLastFunction(route: string) {
 		lastFunction = parts[parts.length - 1];
 	}
 	return lastFunction;
+}
+
+function createDirectoryPath(dirPath: string) {
+	const normalizedPath = path.normalize(dirPath);
+	const parts = normalizedPath.split(path.sep);
+
+	let currentPath = '';
+
+	parts.forEach((part) => {
+		currentPath = path.join(currentPath, part);
+
+		if (!fs.existsSync(currentPath)) {
+			fs.mkdirSync(currentPath);
+		}
+	});
 }
 
 
@@ -304,6 +310,24 @@ async function runner(uriArray: any) {
 						const stringWithoutFunctionName = code.replace(functionName, "");
 						const lines = stringWithoutFunctionName.split('\n').filter(line => !line.trim().startsWith('//'));
 						const resultCode = lines.join('\n');
+						if (bodyMethod != '') {
+							if (!isJsonString(bodyMethod)) {
+								vscode.window.showErrorMessage('Body JSON string!:' + bodyMethod);
+								bodyMethod = `{}`
+							}
+						}
+						if (afterMethod != '') {
+							if (!isJsonString(afterMethod)) {
+								vscode.window.showErrorMessage('Invalid After JSON string!:' + afterMethod + 'on:' + functionName);
+								afterMethod = `[]`
+							}
+						}
+						if (beforeMethod != '') {
+							if (!isJsonString(beforeMethod)) {
+								vscode.window.showErrorMessage('Invalid Before JSON string!:' + afterMethod + 'on:' + functionName);
+								beforeMethod = `[]`
+							}
+						}
 
 						const item = {
 							realurl: fileUri.fsPath,
@@ -315,9 +339,9 @@ async function runner(uriArray: any) {
 							end: endLine,
 							route: routeName || '',
 							method: methodName || '',
-							after: afterMethod || '',
-							before: beforeMethod || '',
-							body: bodyMethod || '',
+							after: afterMethod || '[]',
+							before: beforeMethod || '[]',
+							body: bodyMethod || '{}',
 						}
 
 						items.push(item)
@@ -345,6 +369,15 @@ interface MyItem {
 	after: string;
 	before: string;
 	body: string;
+}
+
+function isJsonString(str: string): boolean {
+	try {
+		JSON.parse(str);
+		return true;
+	} catch (error) {
+		return false;
+	}
 }
 
 function makeArray(items: any) {
