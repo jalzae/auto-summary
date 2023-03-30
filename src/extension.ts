@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { match } from 'assert';
+import { formatTs, formatDart } from './formatApi'
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -40,6 +41,18 @@ export function activate(context: vscode.ExtensionContext) {
 				// loop through each file
 				items = await runner(uriArray);
 				generateTsFunction(items, 'js')
+			});
+		} catch (error) {
+			vscode.window.showErrorMessage("its error when want to generate it");
+		}
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateDartJsonApi', (documentSummary: Document) => {
+		try {
+			vscode.workspace.findFiles('**/*').then(async (uriArray) => {
+				let items = [] as MyItem[]
+				// loop through each file
+				items = await runner(uriArray);
+				generateTsFunction(items, 'dart')
 			});
 		} catch (error) {
 			vscode.window.showErrorMessage("its error when want to generate it");
@@ -145,48 +158,15 @@ async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
 		const resultFilter = (destructed.filter((el: any) => el.parent == e)).map(({ parent, ...rest } = destructed) => rest);
 		result.push({ title: e, items: resultFilter })
 	})
-
-	for (const item of result) {
-		const fileName = item.title.split('\\').pop(); // get the file name with extension
-		const name = fileName.split('.').shift(); // remove the extension and get the name
-		const formatname = name.toLowerCase()
-		let content = `export default {`
-		for (const i of item.items) {
-			content += `${formatname}${getLastFunction(i.url)}(`
-			//cek :id 
-			if (checkIdExist(i.url)) {
-				content += `id:any,`
-			}
-			//cek post or put 
-			if (i.method == "POST" || i.method == "PUT") content += `data:any`
-			content += `){ return {`
-			content += `method:"${i.method}",`
-			//cek post or put
-			if (i.method == "GET" || i.method == "PUT" || i.method == "POST" || i.method == "DELETE") {
-				if (checkIdExist(i.url)) {
-					const replacedStr = i.url.replace("/:id", `"+id`);
-					content += `url:"${replacedStr}`
-				} else {
-					content += `url:"${i.url}"`
-				}
-			} else {
-				content += `url:"${i.url}"`
-			}
-			if (i.method == "POST" || i.method == "PUT") content += `,data`
-			content += `}`
-			content += `},`
-		}
-		content += `}`
-		const outputString = item.title.replace(/\\[^\\]+$/, '').replace(/\\/g, '/');
-		const combinedPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/' + extension + '/' + outputString;
-		// create the directory if it doesn't exist
-
-		createDirectoryPath(combinedPath);
-
-		fs.writeFileSync(combinedPath + `/${formatname}.${extension}`, content);
+	if (extension == "dart") {
+		formatDart(result, extension)
+	} else {
+		formatTs(result, extension)
 	}
 
 }
+
+
 
 function checkIdExist(route: string): boolean {
 	const idPattern = /\/:id/;

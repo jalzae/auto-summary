@@ -2,7 +2,7 @@
   "name": "document-summary",
   "displayName": "Document Summary",
   "description": "to automate document your function code",
-  "version": "0.0.9",
+  "version": "0.1.10",
   "publisher": "Jalzae",
   "icon": "Safeimagekit-resized-img.png",
   "engines": {
@@ -48,6 +48,10 @@
       {
         "command": "document-summary.generateJsJsonApi",
         "title": "Generate JS JSON API"
+      },
+      {
+        "command": "document-summary.generateDartJsonApi",
+        "title": "Generate Dart JSON API"
       }
     ]
   },
