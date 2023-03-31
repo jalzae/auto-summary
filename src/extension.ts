@@ -3,8 +3,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { match } from 'assert';
 import { formatTs, formatDart } from './formatApi'
+import { formatTsModel } from './formatModel'
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -19,6 +19,19 @@ export function activate(context: vscode.ExtensionContext) {
 				editor.revealRange(new vscode.Range(position, position));
 			});
 		});
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateTsModel', (documentSummary: Document) => {
+		try {
+			vscode.workspace.findFiles('**/*').then(async (uriArray) => {
+				let items = [] as MyItem[]
+				// loop through each file
+				items = await runner(uriArray);
+				formatTsModel(items, "ts")
+			});
+		} catch (error) {
+			vscode.window.showErrorMessage("its error when want to generate it");
+		}
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateTsJsonApi', (documentSummary: Document) => {
@@ -166,43 +179,6 @@ async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
 
 }
 
-
-
-function checkIdExist(route: string): boolean {
-	const idPattern = /\/:id/;
-	return idPattern.test(route);
-}
-
-function getLastFunction(route: string) {
-
-	let lastFunction = "";
-	const parts = route.split('/');
-	const lastPart = parts[parts.length - 1];
-
-	if (lastPart.startsWith(':')) {
-		lastFunction = parts[parts.length - 2];
-	} else {
-		lastFunction = parts[parts.length - 1];
-	}
-	return lastFunction;
-}
-
-function createDirectoryPath(dirPath: string) {
-	const normalizedPath = path.normalize(dirPath);
-	const parts = normalizedPath.split(path.sep);
-
-	let currentPath = '';
-
-	parts.forEach((part) => {
-		currentPath = path.join(currentPath, part);
-
-		if (!fs.existsSync(currentPath)) {
-			fs.mkdirSync(currentPath);
-		}
-	});
-}
-
-
 async function runner(uriArray: any) {
 	let items = [] as MyItem[]
 	for (const fileUri of uriArray) {
@@ -243,6 +219,7 @@ async function runner(uriArray: any) {
 					const afterMethodIndex = fileContent.indexOf('//()after:', startIndex);
 					const beforeMethodIndex = fileContent.indexOf('//()before:', startIndex);
 					const bodyMethodIndex = fileContent.indexOf('//()body:', startIndex);
+					const resMethodIndex = fileContent.indexOf('//()res:', startIndex);
 
 					if (functionIndex !== -1) {
 						const functionNameStartIndex = functionIndex + '//()SumFunc:'.length;
@@ -284,6 +261,13 @@ async function runner(uriArray: any) {
 							bodyMethod = fileContent.substring(bodyMethodStartIndex, bodyMethodEndIndex !== -1 ? bodyMethodEndIndex : undefined).trim();
 						}
 
+						let resMethod = ''
+						if (resMethodIndex !== -1) {
+							const resMethodStartIndex = resMethodIndex + '//()res:'.length;
+							const resMethodEndIndex = fileContent.indexOf("\n", resMethodStartIndex);
+							resMethod = fileContent.substring(resMethodStartIndex, resMethodEndIndex !== -1 ? resMethodEndIndex : undefined).trim();
+						}
+
 						const code = fileContent.substring(functionIndex + 12, endIndex).trim()
 						const match = code.match(/SumFunc:(.*)/);
 						const functionOnCode = match ? match[1].trim() : null;
@@ -292,8 +276,15 @@ async function runner(uriArray: any) {
 						const resultCode = lines.join('\n');
 						if (bodyMethod != '') {
 							if (!isJsonString(bodyMethod)) {
-								vscode.window.showErrorMessage('Body JSON string!:' + bodyMethod);
+								// vscode.window.showErrorMessage('Body JSON string!:' + bodyMethod);
 								bodyMethod = `{}`
+							}
+						}
+
+						if (resMethod != '') {
+							if (!isJsonString(resMethod)) {
+								// vscode.window.showErrorMessage('Res JSON string!:' + resMethod);
+								resMethod = `{}`
 							}
 						}
 						if (afterMethod != '') {
@@ -322,6 +313,7 @@ async function runner(uriArray: any) {
 							after: afterMethod || '[]',
 							before: beforeMethod || '[]',
 							body: bodyMethod || '{}',
+							res: resMethod || '{}',
 						}
 
 						items.push(item)
@@ -336,7 +328,7 @@ async function runner(uriArray: any) {
 	return items;
 }
 
-interface MyItem {
+export interface MyItem {
 	realurl: string;
 	url: string;
 	function: string;
@@ -349,34 +341,31 @@ interface MyItem {
 	after: string;
 	before: string;
 	body: string;
+	res: string;
 }
 
-function isJsonString(str: string): boolean {
+export function isJsonString(str: string): boolean {
 	try {
 		JSON.parse(str);
 		return true;
 	} catch (error) {
+		console.log(error)
 		return false;
 	}
 }
 
 function makeArray(items: any) {
-
 	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode';
-
 	// create the directory if it doesn't exist
 	if (!fs.existsSync(vscodePath)) {
 		fs.mkdirSync(vscodePath);
 	}
-
 	// write the HTML content to a file in the .vscode directory
 	fs.writeFileSync(vscodePath + '/request.json', JSON.stringify(items));
 }
 
 function showItemList(items: MyItem[]) {
-
 	let datas: any = {}
-
 	for (let item of items) {
 		if (item.route != '' && item.method != '' && item.function != '') {
 			datas[item.route] = {
@@ -394,16 +383,12 @@ function showItemList(items: MyItem[]) {
 			}
 		}
 	}
-
-
 	// get the path to the .vscode directory of the current workspace
 	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode';
-
 	// create the directory if it doesn't exist
 	if (!fs.existsSync(vscodePath)) {
 		fs.mkdirSync(vscodePath);
 	}
-
 	// write the HTML content to a file in the .vscode directory
 	const html = makeSwagger();
 	fs.writeFileSync(vscodePath + '/auto-summary.html', html);
@@ -433,7 +418,6 @@ function showItemList(items: MyItem[]) {
 
 function makeSwagger() {
 	var html = `<html>
-
 <head>
   <meta charset="UTF-8">
 	<title>Summary</title>
@@ -444,7 +428,6 @@ function makeSwagger() {
     }
   </style>
 </head>
-
 <body>
   <div id="swagger-ui"></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js"> </script>
@@ -469,9 +452,7 @@ function makeSwagger() {
     }
   </script>
 </body>
-
 </html>`;
-
 	return html;
 }
 
@@ -511,8 +492,6 @@ class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 			arguments: [element] // pass the element as an argument to the command
 		};
 		return treeItem;
-
-
 	}
 
 	getChildren(element?: Document): Thenable<Document[]> {

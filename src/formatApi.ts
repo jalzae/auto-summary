@@ -20,7 +20,9 @@ export function formatTs(result: any, extension: string) {
       }
       //cek post or put 
       if (i.method == "POST" || i.method == "PUT") content += `data:any`
-      content += `){ return {`
+      content += `){ 
+        return {
+          `
       content += `method:"${i.method}",`
       //cek post or put
       if (i.method == "GET" || i.method == "PUT" || i.method == "POST" || i.method == "DELETE") {
@@ -35,11 +37,12 @@ export function formatTs(result: any, extension: string) {
       }
       if (i.method == "POST" || i.method == "PUT") content += `,data`
       content += `}`
-      content += `},`
+      content += `},
+      `
     }
-    content += `}`
+    content += `
+  }`
 
-    content += `}`
     const outputString = item.title.replace(/\\[^\\]+$/, '').replace(/\\/g, '/');
     writeIt(extension, outputString, formatname, content)
   }
@@ -86,17 +89,17 @@ export function formatDart(result: any, extension: string = "dart") {
   }
 }
 
-function capitalizeFirstLetter(str: string): string {
+export function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function capitalize(str: string): string {
+export function capitalize(str: string): string {
   const parts = str.split(/(?=[A-Z])/); // split the string by uppercase letters
   parts[0] = capitalizeFirstLetter(parts[0]); // capitalize the first part
   return parts.join(''); // join the parts back into a string
 }
 
-function formatString(str: string): string {
+export function formatString(str: string): string {
   const extension = str.split('.').pop(); // get the file extension
   str = str.replace(/\\/g, ''); // remove backslashes
   str = str.replace('.' + extension, ''); // remove file extension
@@ -106,7 +109,7 @@ function formatString(str: string): string {
 }
 
 
-function writeIt(extension: string, outputString: string, formatname: string, content: string) {
+export function writeIt(extension: string, outputString: string, formatname: string, content: string) {
   const combinedPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode/' + extension + '/' + outputString;
   // create the directory if it doesn't exist
   createDirectoryPath(combinedPath);
@@ -114,12 +117,12 @@ function writeIt(extension: string, outputString: string, formatname: string, co
 }
 
 
-function checkIdExist(route: string): boolean {
+export function checkIdExist(route: string): boolean {
   const idPattern = /\/:id/;
   return idPattern.test(route);
 }
 
-function getLastFunction(route: string) {
+export function getLastFunction(route: string) {
   let lastFunction = "";
   const parts = route.split('/');
   const lastPart = parts[parts.length - 1];
@@ -133,7 +136,7 @@ function getLastFunction(route: string) {
 }
 
 
-function createDirectoryPath(dirPath: string) {
+export function createDirectoryPath(dirPath: string) {
   const normalizedPath = path.normalize(dirPath);
   const parts = normalizedPath.split(path.sep);
 

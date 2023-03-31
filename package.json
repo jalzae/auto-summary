@@ -2,7 +2,7 @@
   "name": "document-summary",
   "displayName": "Document Summary",
   "description": "to automate document your function code",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "publisher": "Jalzae",
   "icon": "Safeimagekit-resized-img.png",
   "engines": {
@@ -52,6 +52,10 @@
       {
         "command": "document-summary.generateDartJsonApi",
         "title": "Generate Dart JSON API"
+      },
+      {
+        "command": "document-summary.generateTsModel",
+        "title": "Generate TS Model"
       }
     ]
   },
@@ -64,7 +68,9 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/runTest.js",
+    "build": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.76.0",
