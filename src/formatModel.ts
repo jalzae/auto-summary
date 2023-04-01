@@ -1,4 +1,4 @@
-import { getLastFunction, checkIdExist, writeIt } from './formatApi'
+import { getLastFunction,  writeIt } from './formatApi'
 import { MyItem, isJsonString } from './extension'
 import { destructedType, resultDestruct } from './model'
 

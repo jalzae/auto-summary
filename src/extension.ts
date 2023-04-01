@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { formatTs, formatDart } from './formatApi'
 import { formatTsModel } from './formatModel'
+import { generate } from './quicktype'
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -103,6 +104,14 @@ export function activate(context: vscode.ExtensionContext) {
 			});
 		});
 	});
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateTsSchema', () => {
+		// get all the files in the workspace
+		generate('typescript','ts')
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateDartSchema', () => {
+		// get all the files in the workspace
+		generate('dart','dart')
+	}));
 
 	vscode.commands.registerCommand('document-summary.generateTest', () => {
 		// get all the files in the workspace
