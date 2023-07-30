@@ -17,17 +17,19 @@ export function formatTs(result: any, extension: string) {
         content += `id:any,`;
       }
       //cek post or put
-      if (i.method == "POST" || i.method == "PUT") content += `data:any`;
+      if (i.method === "POST" || i.method === "PUT") {
+        content += `data:any`;
+      }
       content += `){ 
         return {
           `;
       content += `method:"${i.method}",`;
       //cek post or put
       if (
-        i.method == "GET" ||
-        i.method == "PUT" ||
-        i.method == "POST" ||
-        i.method == "DELETE"
+        i.method === "GET" ||
+        i.method === "PUT" ||
+        i.method === "POST" ||
+        i.method === "DELETE"
       ) {
         if (checkIdExist(i.url)) {
           const replacedStr = i.url.replace("/:id", `"+id`);
@@ -38,7 +40,9 @@ export function formatTs(result: any, extension: string) {
       } else {
         content += `url:"${i.url}"`;
       }
-      if (i.method == "POST" || i.method == "PUT") content += `,data`;
+      if (i.method === "POST" || i.method === "PUT") {
+        content += `,data`;
+      }
       content += `}`;
       content += `},
       `;
@@ -67,19 +71,20 @@ export function formatDart(result: any, extension: string = "dart") {
         content += `String id,`;
       }
       //cek post or put
-      if (i.method == "POST" || i.method == "PUT")
+      if (i.method === "POST" || i.method === "PUT") {
         content += `{Map<String,dynamic> data=const {},Map<String,dynamic> headers=const {}}`;
+      }
       content += `){ Map<String,dynamic> request= {`;
       content += `"method":"${i.method}",`;
       //cek post or put
       if (
-        i.method == "GET" ||
-        i.method == "PUT" ||
-        i.method == "POST" ||
-        i.method == "DELETE"
+        i.method === "GET" ||
+        i.method === "PUT" ||
+        i.method === "POST" ||
+        i.method === "DELETE"
       ) {
         if (checkIdExist(i.url)) {
-          const replacedStr = i.url.replace("/:id", `"+id`);
+          const replacedStr = i.url.replace("/:id", `"+'/'+id`);
           content += `"url":"${replacedStr}`;
         } else {
           content += `"url":"${i.url}"`;
@@ -87,8 +92,6 @@ export function formatDart(result: any, extension: string = "dart") {
       } else {
         content += `"url":"${i.url}"`;
       }
-      if (i.method == "POST" || i.method == "PUT")
-        content += `,"body":data,"header":headers`;
       content += `};`;
       content += `return request;`;
       content += `}

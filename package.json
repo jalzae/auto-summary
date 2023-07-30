@@ -2,7 +2,7 @@
   "name": "document-summary",
   "displayName": "Document Summary",
   "description": "to automate document your function code",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "publisher": "Jalzae",
   "icon": "Safeimagekit-resized-img.png",
   "engines": {
@@ -102,6 +102,7 @@
   },
   "dependencies": {
     "quicktype": "^15.0.0",
-    "quicktype-core": "^23.0.19"
+    "quicktype-core": "^23.0.19",
+    "vsce": "^2.15.0"
   }
 }
