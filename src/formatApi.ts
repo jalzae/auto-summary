@@ -32,7 +32,7 @@ export function formatTs(result: any, extension: string) {
         i.method === "DELETE"
       ) {
         if (checkIdExist(i.url)) {
-          const replacedStr = i.url.replace("/:id", `"+id`);
+          const replacedStr = i.url.replace("/:id", "/${id}");
           content += `url:"${replacedStr}`;
         } else {
           content += `url:"${i.url}"`;
@@ -84,7 +84,7 @@ export function formatDart(result: any, extension: string = "dart") {
         i.method === "DELETE"
       ) {
         if (checkIdExist(i.url)) {
-          const replacedStr = i.url.replace("/:id", `"+'/'+id`);
+          const replacedStr = i.url.replace("/:id", `/$id`);
           content += `"url":"${replacedStr}`;
         } else {
           content += `"url":"${i.url}"`;
