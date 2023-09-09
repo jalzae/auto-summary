@@ -9,9 +9,6 @@ import { generate } from './quicktype'
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-	console.log('Auto Summary Extension activated!');
-
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (documentSummary: Document) => {
 		vscode.workspace.openTextDocument(documentSummary.realurl).then((doc) => {
 			vscode.window.showTextDocument(doc).then((editor) => {
