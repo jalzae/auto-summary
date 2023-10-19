@@ -86,12 +86,59 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	vscode.commands.registerCommand('document-summary.scanFiles', () => {
-		// get all the files in the workspace
+
+
+
 		vscode.workspace.findFiles('**/*').then(async (uriArray) => {
+
+			const summaryFilePath = '.vscode/summary.json';
+			const baseUrlFilePath = '.vscode/baseurl.json';
+
+			// Check if the files exist
+			const summaryFileExists = fs.existsSync(summaryFilePath);
+			const baseUrlFileExists = fs.existsSync(baseUrlFilePath);
+
+			if (!summaryFileExists) {
+				const defaultSummary = {
+					usage: 'html content sample',
+				};
+
+				fs.writeFileSync('.vscode/summary.json', JSON.stringify(defaultSummary, null, 2));
+			}
+
+			if (!baseUrlFileExists) {
+				const defaultBaseUrl = [
+					{ url: 'example.com', description: 'Example Website' },
+				];
+
+				fs.writeFileSync('.vscode/baseurl.json', JSON.stringify(defaultBaseUrl, null, 2));
+			}
+
+			// Read and parse the JSON files
+			let summaryData;
+			let baseUrlData: server[] = [];
+
+			if (summaryFileExists) {
+				const summaryFileContent = fs.readFileSync(summaryFilePath, 'utf8');
+				try {
+					summaryData = JSON.parse(summaryFileContent);
+				} catch (error) {
+					console.error('Error parsing summary.json:', error);
+				}
+			}
+
+			if (baseUrlFileExists) {
+				const baseUrlFileContent = fs.readFileSync(baseUrlFilePath, 'utf8');
+				try {
+					baseUrlData = JSON.parse(baseUrlFileContent);
+				} catch (error) {
+					console.error('Error parsing baseurl.json:', error);
+				}
+			}
+
 			let items = [] as MyItem[]
-			// loop through each file
 			items = await runner(uriArray);
-			showItemList(items)
+			showItemList(items, baseUrlData, summaryData)
 			const treeDataProvider = new DocumentSummaryProvider(items);
 			vscode.window.registerTreeDataProvider('documentSummary', treeDataProvider);
 			vscode.commands.executeCommand('setContext', 'documentSummaryTreeViewVisible', true);
@@ -226,6 +273,10 @@ async function runner(uriArray: any) {
 					const beforeMethodIndex = fileContent.indexOf('()before:', startIndex);
 					const bodyMethodIndex = fileContent.indexOf('()body:', startIndex);
 					const resMethodIndex = fileContent.indexOf('()res:', startIndex);
+					const descIndex = fileContent.indexOf('()desc:', startIndex);
+					const resCodeIndex = fileContent.indexOf('()resCode:', startIndex);
+					const reqBodyIndex = fileContent.indexOf('()reqBody:', startIndex);
+					const reqParamIndex = fileContent.indexOf('()reqParam:', startIndex);
 
 					if (functionIndex !== -1) {
 						const functionNameStartIndex = functionIndex + '()SumFunc:'.length;
@@ -237,6 +288,34 @@ async function runner(uriArray: any) {
 							const routeNameStartIndex = routeIndex + '()SumRoute:'.length;
 							const routeNameEndIndex = fileContent.indexOf("\n", routeNameStartIndex);
 							routeName = fileContent.substring(routeNameStartIndex, routeNameEndIndex !== -1 ? routeNameEndIndex : undefined).trim();
+						}
+
+						let descName = ''
+						if (descIndex !== -1) {
+							const descIndexStart = descIndex + '()desc:'.length;
+							const descIndexEnd = fileContent.indexOf("\n", descIndexStart);
+							descName = fileContent.substring(descIndexStart, descIndexEnd !== -1 ? descIndexEnd : undefined).trim();
+						}
+
+						let resCodeData: any
+						if (resCodeIndex !== -1) {
+							const resCodeDataIndexStart = resCodeIndex + '()resCode:'.length;
+							const resCodeDataIndexEnd = fileContent.indexOf("\n", resCodeDataIndexStart);
+							resCodeData = JSON.parse(fileContent.substring(resCodeDataIndexStart, resCodeDataIndexEnd !== -1 ? resCodeDataIndexEnd : undefined).trim());
+						}
+
+						let reqBodyName: any
+						if (reqBodyIndex !== -1) {
+							const reqBodyIndexStart = reqBodyIndex + '()resCode:'.length;
+							const reqBodyIndexEnd = fileContent.indexOf("\n", reqBodyIndexStart);
+							reqBodyName = JSON.parse(fileContent.substring(reqBodyIndexStart, reqBodyIndexEnd !== -1 ? reqBodyIndexEnd : undefined).trim());
+						}
+
+						let reqParamName: Parameter[] = []
+						if (reqParamIndex !== -1) {
+							const reqParamIndexStart = reqParamIndex + '()resCode:'.length;
+							const reqParamIndexEnd = fileContent.indexOf("\n", reqParamIndexStart);
+							reqParamName = JSON.parse(fileContent.substring(reqParamIndexStart, reqParamIndexEnd !== -1 ? reqParamIndexEnd : undefined).trim());
 						}
 
 						let methodName = ''
@@ -306,7 +385,7 @@ async function runner(uriArray: any) {
 							}
 						}
 
-						const item = {
+						const item: MyItem = {
 							realurl: fileUri.fsPath,
 							url: relativePath,
 							function: functionName,
@@ -321,6 +400,11 @@ async function runner(uriArray: any) {
 							body: bodyMethod || '{}',
 							res: resMethod || '{}',
 						}
+
+						if (descName) item.description = descName
+						if (resCodeData) item.responseCode = resCodeData
+						if (reqBodyName) item.requestBody = reqBodyName
+						if (reqParamName) item.parameter = reqParamName
 
 						items.push(item)
 
@@ -364,6 +448,11 @@ interface Parameter {
 	};
 }
 
+interface server {
+	url: string,
+	description: string
+}
+
 export function isJsonString(str: string): boolean {
 	try {
 		JSON.parse(str);
@@ -376,15 +465,13 @@ export function isJsonString(str: string): boolean {
 
 function makeArray(items: any) {
 	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode';
-	// create the directory if it doesn't exist
 	if (!fs.existsSync(vscodePath)) {
 		fs.mkdirSync(vscodePath);
 	}
-	// write the HTML content to a file in the .vscode directory
 	fs.writeFileSync(vscodePath + '/request.json', JSON.stringify(items));
 }
 
-function showItemList(items: MyItem[]) {
+function showItemList(items: MyItem[], servers: server[], menus: any) {
 	let datas: any = {}
 	for (let item of items) {
 		if (item.route != '' && item.method != '' && item.function != '') {
@@ -396,22 +483,22 @@ function showItemList(items: MyItem[]) {
 						item.url
 					],
 					"code": `${item.code}`,
-					"description": `${item.description}`,
-					"requestBody": `${item.requestBody}`,
-					responses: {
+					'responses': {
 						...item.responseCode,
 					}
 				},
 			}
+
+			if (item.requestBody != null) datas[item.route][item.method.toLowerCase()]['requestBody'] = item.requestBody
+			if (item.description != null) datas[item.route][item.method.toLowerCase()]['description'] = item.description
+			if (item.responseCode != null) datas[item.route][item.method.toLowerCase()]['responses'] = item.responseCode
+			if (item.parameter != null) datas[item.route][item.method.toLowerCase()]['parameters'] = item.parameter
 		}
 	}
-	// get the path to the .vscode directory of the current workspace
 	const vscodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/.vscode';
-	// create the directory if it doesn't exist
 	if (!fs.existsSync(vscodePath)) {
 		fs.mkdirSync(vscodePath);
 	}
-	// write the HTML content to a file in the .vscode directory
 	const html = makeSwagger();
 	fs.writeFileSync(vscodePath + '/auto-summary.html', html);
 	fs.writeFileSync(vscodePath + '/data.js', `var spec={
@@ -420,7 +507,10 @@ function showItemList(items: MyItem[]) {
 			"version": "1.0.0",
 				"title": "API Specification"
 		},
-		"paths":${JSON.stringify(datas)}}`);
+		"paths":${JSON.stringify(datas)}},
+		 "servers": ${JSON.stringify(servers)},
+	 "menu": ${JSON.stringify(menus)}
+`);
 
 	// Check if the file exists
 	const filePath = vscodePath + '/auto-summary.html'
@@ -439,42 +529,42 @@ function showItemList(items: MyItem[]) {
 }
 
 function makeSwagger() {
-	var html = `<html>
-<head>
-  <meta charset="UTF-8">
-	<title>Summary</title>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css">
-  <style>
+	var html = `< html >
+	<head>
+	<meta charset="UTF-8" >
+		<title>Summary < /title>
+		< link rel = "stylesheet" type = "text/css" href = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css" >
+			<style>
     .topbar {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="swagger-ui"></div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js"> </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js"> </script>
-  <script src="./data.js"> </script>
-  <script>
-    window.onload = function() {
-      const ui = SwaggerUIBundle({
-        spec: spec,
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIStandalonePreset
-        ],
-        plugins: [
-          SwaggerUIBundle.plugins.DownloadUrl
-        ],
-        layout: "StandaloneLayout"
-      })
-      window.ui = ui
-    }
-  </script>
-</body>
-</html>`;
+	display: none;
+}
+</style>
+	< /head>
+	< body >
+	<div id="swagger-ui" > </div>
+		< script src = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js" > </script>
+			< script src = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js" > </script>
+				< script src = "./data.js" > </script>
+					<script>
+window.onload = function () {
+	const ui = SwaggerUIBundle({
+		spec: spec,
+		dom_id: '#swagger-ui',
+		deepLinking: true,
+		presets: [
+			SwaggerUIBundle.presets.apis,
+			SwaggerUIStandalonePreset
+		],
+		plugins: [
+			SwaggerUIBundle.plugins.DownloadUrl
+		],
+		layout: "StandaloneLayout"
+	})
+	window.ui = ui
+}
+	< /script>
+	< /body>
+	< /html>`;
 	return html;
 }
 
