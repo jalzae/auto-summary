@@ -103,11 +103,11 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateTsSchema', () => {
 		// get all the files in the workspace
-		generate('typescript','ts')
+		generate('typescript', 'ts')
 	}));
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateDartSchema', () => {
 		// get all the files in the workspace
-		generate('dart','dart')
+		generate('dart', 'dart')
 	}));
 
 	vscode.commands.registerCommand('document-summary.generateTest', () => {
@@ -202,8 +202,8 @@ async function runner(uriArray: any) {
 
 		if (result.length > 0) {
 			for (const [index, fileContent] of result.entries()) {
-				const startIndex = fileContent.indexOf('//()SumStart');
-				const endIndex = fileContent.indexOf('//()SumEnd');
+				const startIndex = fileContent.indexOf('()SumStart');
+				const endIndex = fileContent.indexOf('()SumEnd');
 
 				const textDocument = await vscode.workspace.openTextDocument(fileUri);
 				const content = textDocument.getText();
@@ -219,57 +219,57 @@ async function runner(uriArray: any) {
 						relativePath = path.relative(rootPath, fileUri.fsPath);
 					}
 					// search for //()SumFunc
-					const functionIndex = fileContent.indexOf('//()SumFunc:', startIndex);
-					const routeIndex = fileContent.indexOf('//()SumRoute:', startIndex);
-					const methodIndex = fileContent.indexOf('//()SumMethod:', startIndex);
-					const afterMethodIndex = fileContent.indexOf('//()after:', startIndex);
-					const beforeMethodIndex = fileContent.indexOf('//()before:', startIndex);
-					const bodyMethodIndex = fileContent.indexOf('//()body:', startIndex);
-					const resMethodIndex = fileContent.indexOf('//()res:', startIndex);
+					const functionIndex = fileContent.indexOf('()SumFunc:', startIndex);
+					const routeIndex = fileContent.indexOf('()SumRoute:', startIndex);
+					const methodIndex = fileContent.indexOf('()SumMethod:', startIndex);
+					const afterMethodIndex = fileContent.indexOf('()after:', startIndex);
+					const beforeMethodIndex = fileContent.indexOf('()before:', startIndex);
+					const bodyMethodIndex = fileContent.indexOf('()body:', startIndex);
+					const resMethodIndex = fileContent.indexOf('()res:', startIndex);
 
 					if (functionIndex !== -1) {
-						const functionNameStartIndex = functionIndex + '//()SumFunc:'.length;
+						const functionNameStartIndex = functionIndex + '()SumFunc:'.length;
 						const functionNameEndIndex = fileContent.indexOf("\n", functionNameStartIndex);
 						const functionName = fileContent.substring(functionNameStartIndex, functionNameEndIndex !== -1 ? functionNameEndIndex : undefined).trim();
 
 						let routeName = ''
 						if (routeIndex !== -1) {
-							const routeNameStartIndex = routeIndex + '//()SumRoute:'.length;
+							const routeNameStartIndex = routeIndex + '()SumRoute:'.length;
 							const routeNameEndIndex = fileContent.indexOf("\n", routeNameStartIndex);
 							routeName = fileContent.substring(routeNameStartIndex, routeNameEndIndex !== -1 ? routeNameEndIndex : undefined).trim();
 						}
 
 						let methodName = ''
 						if (methodIndex !== -1) {
-							const methodNameStartIndex = methodIndex + '//()SumMethod:'.length;
+							const methodNameStartIndex = methodIndex + '()SumMethod:'.length;
 							const methodNameEndIndex = fileContent.indexOf("\n", methodNameStartIndex);
 							methodName = fileContent.substring(methodNameStartIndex, methodNameEndIndex !== -1 ? methodNameEndIndex : undefined).trim();
 						}
 
 						let afterMethod = ''
 						if (afterMethodIndex !== -1) {
-							const afterMethodStartIndex = afterMethodIndex + '//()after:'.length;
+							const afterMethodStartIndex = afterMethodIndex + '()after:'.length;
 							const afterMethodEndIndex = fileContent.indexOf("\n", afterMethodStartIndex);
 							afterMethod = fileContent.substring(afterMethodStartIndex, afterMethodEndIndex !== -1 ? afterMethodEndIndex : undefined).trim();
 						}
 
 						let beforeMethod = ''
 						if (beforeMethodIndex !== -1) {
-							const beforeMethodStartIndex = beforeMethodIndex + '//()before:'.length;
+							const beforeMethodStartIndex = beforeMethodIndex + '()before:'.length;
 							const beforeMethodEndIndex = fileContent.indexOf("\n", beforeMethodStartIndex);
 							beforeMethod = fileContent.substring(beforeMethodStartIndex, beforeMethodEndIndex !== -1 ? beforeMethodEndIndex : undefined).trim();
 						}
 
 						let bodyMethod = ''
 						if (bodyMethodIndex !== -1) {
-							const bodyMethodStartIndex = bodyMethodIndex + '//()body:'.length;
+							const bodyMethodStartIndex = bodyMethodIndex + '()body:'.length;
 							const bodyMethodEndIndex = fileContent.indexOf("\n", bodyMethodStartIndex);
 							bodyMethod = fileContent.substring(bodyMethodStartIndex, bodyMethodEndIndex !== -1 ? bodyMethodEndIndex : undefined).trim();
 						}
 
 						let resMethod = ''
 						if (resMethodIndex !== -1) {
-							const resMethodStartIndex = resMethodIndex + '//()res:'.length;
+							const resMethodStartIndex = resMethodIndex + '()res:'.length;
 							const resMethodEndIndex = fileContent.indexOf("\n", resMethodStartIndex);
 							resMethod = fileContent.substring(resMethodStartIndex, resMethodEndIndex !== -1 ? resMethodEndIndex : undefined).trim();
 						}
@@ -348,6 +348,20 @@ export interface MyItem {
 	before: string;
 	body: string;
 	res: string;
+	description?: string;
+	requestBody?: any;
+	responseCode?: any
+	parameter?: Parameter[]
+}
+
+interface Parameter {
+	name: string;
+	in: "header" | "query" | "path" | "cookie";
+	description?: string;
+	required: boolean;
+	schema: {
+		type: string;
+	};
 }
 
 export function isJsonString(str: string): boolean {
@@ -381,9 +395,11 @@ function showItemList(items: MyItem[]) {
 					"tags": [
 						item.url
 					],
+					"code": `${item.code}`,
+					"description": `${item.description}`,
+					"requestBody": `${item.requestBody}`,
 					responses: {
-						"body": { description: item.body },
-						"code": { description: item.code },
+						...item.responseCode,
 					}
 				},
 			}
