@@ -8,7 +8,7 @@ This is the README for extension "document-summary".
 
 - //()SumStart
   Buat diawal kode
-- //()SumFunc: Nama Fungsi
+- //()SumFunc: Nama Fungsi => Wajib unique
 - //()SumRoute: routeFungsi
 - //()SumMethod:
   GET/POST/DELETE/PUT
@@ -16,17 +16,99 @@ This is the README for extension "document-summary".
   ["assign","assignall","dll"]
 - //()before:
   ["fungsi"]
-- //()body:
-  {"sample":"sample"}
+- //()desc: "Gunakan ini untuk deskripsi pada fungsi"
+- //()code: "Gunakan ini diantara code yang ingin ditampilkan"
 - //()SumEnd
   Buat diakhir kode
 
+  Multiline Code and optional
+- ()resCode:
+- ()reqBody:
+- ()reqParam:
 ```
 //()SumStart
 //()SumFunc:
 //()SumRoute:
 //()SumMethod:
+//()desc:
 //()SumEnd
+```
+
+Multiline Code like ()resCode: ()reqBody: and ()reqBody: using multiline comment operator
+```
+/*
+()resCode:
+        {
+          "200": {
+            "description": "List of posts",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "userId": 1,
+                    "id": 1,
+                    "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+                    "body": "quia et suscipit\nsuscipit"
+                  },
+                  {
+                    "userId": 1,
+                    "id": 2,
+                    "title": "qui est esse",
+                    "body": "est rerum tempore quis soluta deleniti quidem"
+                  }
+                ]
+              }
+            },
+            expected:{
+               "userId": 1,
+               "id": 2,
+               "title": "qui est esse",
+               "body": "est rerum tempore quis soluta deleniti quidem"
+            }
+          }
+        }
+()resCode:
+
+()reqParam:
+        [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+()reqParam:
+
+()reqBody:
+        {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "integer",
+                    "description": "User ID"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Title of the post"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Content of the post"
+                  }
+                }
+              }
+            }
+          }
+        }
+()reqBody:
+*/
 ```
 
 ![Preview Image](./Preview.jpg)
