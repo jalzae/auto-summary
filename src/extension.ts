@@ -6,6 +6,7 @@ import * as path from 'path';
 import { formatTs, formatDart } from './formatApi'
 import { formatTsModel } from './formatModel'
 import { generate } from './quicktype'
+import { getContent } from './helper'
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
@@ -98,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const baseUrlFileExists = fs.existsSync(baseUrlFilePath);
 
 		if (!summaryFileExists) {
-		
+
 			const defaultSummary = {
 				usage: 'html content sample',
 			};
@@ -279,6 +280,8 @@ async function runner(uriArray: any) {
 					const resCodeIndex = fileContent.indexOf('()resCode:', startIndex);
 					const reqBodyIndex = fileContent.indexOf('()reqBody:', startIndex);
 					const reqParamIndex = fileContent.indexOf('()reqParam:', startIndex);
+					const reqCodeIndex = fileContent.indexOf('()code:', startIndex);
+
 
 					if (functionIndex !== -1) {
 						const functionNameStartIndex = functionIndex + '()SumFunc:'.length;
@@ -300,24 +303,26 @@ async function runner(uriArray: any) {
 						}
 
 						let resCodeData: any
-						if (resCodeIndex !== -1) {
-							const resCodeDataIndexStart = resCodeIndex + '()resCode:'.length;
-							const resCodeDataIndexEnd = fileContent.indexOf("\n", resCodeDataIndexStart);
-							resCodeData = JSON.parse(fileContent.substring(resCodeDataIndexStart, resCodeDataIndexEnd !== -1 ? resCodeDataIndexEnd : undefined).trim());
+						if (resCodeIndex != -1) {
+							resCodeData = getContent(fileContent, '()resCode:');
+
 						}
 
 						let reqBodyName: any
-						if (reqBodyIndex !== -1) {
-							const reqBodyIndexStart = reqBodyIndex + '()resCode:'.length;
-							const reqBodyIndexEnd = fileContent.indexOf("\n", reqBodyIndexStart);
-							reqBodyName = JSON.parse(fileContent.substring(reqBodyIndexStart, reqBodyIndexEnd !== -1 ? reqBodyIndexEnd : undefined).trim());
+						if (reqBodyIndex != -1) {
+							reqBodyName = getContent(fileContent, '()reqBody:');
+
 						}
 
 						let reqParamName: Parameter[] = []
-						if (reqParamIndex !== -1) {
-							const reqParamIndexStart = reqParamIndex + '()resCode:'.length;
-							const reqParamIndexEnd = fileContent.indexOf("\n", reqParamIndexStart);
-							reqParamName = JSON.parse(fileContent.substring(reqParamIndexStart, reqParamIndexEnd !== -1 ? reqParamIndexEnd : undefined).trim());
+						if (reqParamIndex != -1) {
+							reqParamName = JSON.parse(getContent(fileContent, '()reqParam:') || '{}')
+						}
+
+						//reqCodeIndex
+						let code = ''
+						if (reqCodeIndex != -1) {
+							code = getContent(fileContent, '()code:') || '';
 						}
 
 						let methodName = ''
@@ -355,7 +360,7 @@ async function runner(uriArray: any) {
 							resMethod = fileContent.substring(resMethodStartIndex, resMethodEndIndex !== -1 ? resMethodEndIndex : undefined).trim();
 						}
 
-						const code = fileContent.substring(functionIndex + 12, endIndex).trim()
+
 						const match = code.match(/SumFunc:(.*)/);
 						const functionOnCode = match ? match[1].trim() : null;
 						const stringWithoutFunctionName = code.replace(functionName, "");
@@ -404,8 +409,8 @@ async function runner(uriArray: any) {
 						}
 
 						if (descName) item.description = descName
-						if (resCodeData) item.responseCode = resCodeData
-						if (reqBodyName) item.requestBody = reqBodyName
+						if (resCodeData) item.responseCode = JSON.parse(resCodeData)
+						if (reqBodyName) item.requestBody = JSON.parse(reqBodyName)
 						if (reqParamName) item.parameter = reqParamName
 
 						items.push(item)
@@ -473,6 +478,18 @@ function makeArray(items: any) {
 	fs.writeFileSync(vscodePath + '/request.json', JSON.stringify(items));
 }
 
+function removeFileExtension(filePath: string) {
+	if (filePath.includes('.')) {
+		return filePath.replace(/\.\w+$/, '');
+	} else {
+		return filePath;
+	}
+}
+
+function formatString(inputString: string) {
+	return inputString.replace(/\\/g, '-');
+}
+
 function showItemList(items: MyItem[], servers: server[], menus: any) {
 	let datas: any = {}
 	for (let item of items) {
@@ -482,7 +499,7 @@ function showItemList(items: MyItem[], servers: server[], menus: any) {
 					"summary": item.function,
 					"operationId": item.function.trim(),
 					"tags": [
-						item.url
+						formatString(removeFileExtension(item.url))
 					],
 					"code": `${item.code}`,
 					'responses': {
