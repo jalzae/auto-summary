@@ -8,6 +8,8 @@ import { formatTsModel } from './formatModel'
 import { generate } from './quicktype'
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
+const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
+
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (documentSummary: Document) => {
 		vscode.workspace.openTextDocument(documentSummary.realurl).then((doc) => {
@@ -88,53 +90,53 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.registerCommand('document-summary.scanFiles', () => {
 
 
+		const summaryFilePath = vsCodePath + '.vscode/summary.json';
+		const baseUrlFilePath = vsCodePath + '.vscode/baseurl.json';
+
+		// Check if the files exist
+		const summaryFileExists = fs.existsSync(summaryFilePath);
+		const baseUrlFileExists = fs.existsSync(baseUrlFilePath);
+
+		if (!summaryFileExists) {
+		
+			const defaultSummary = {
+				usage: 'html content sample',
+			};
+
+			fs.writeFileSync(summaryFilePath, JSON.stringify(defaultSummary, null, 2));
+		}
+
+		if (!baseUrlFileExists) {
+			const defaultBaseUrl = [
+				{ url: 'example.com', description: 'Example Website' },
+			];
+
+			fs.writeFileSync(baseUrlFilePath, JSON.stringify(defaultBaseUrl, null, 2));
+		}
+
+		// Read and parse the JSON files
+		let summaryData: any;
+		let baseUrlData: server[] = [];
+
+		if (summaryFileExists) {
+			const summaryFileContent = fs.readFileSync(summaryFilePath, 'utf8');
+			try {
+				summaryData = summaryFileContent;
+			} catch (error) {
+				console.error('Error parsing summary.json:', error);
+			}
+		}
+
+		if (baseUrlFileExists) {
+			const baseUrlFileContent = fs.readFileSync(baseUrlFilePath, 'utf8');
+			try {
+				baseUrlData = JSON.parse(baseUrlFileContent);
+			} catch (error) {
+				console.error('Error parsing baseurl.json:', error);
+			}
+		}
 
 		vscode.workspace.findFiles('**/*').then(async (uriArray) => {
-
-			const summaryFilePath = '.vscode/summary.json';
-			const baseUrlFilePath = '.vscode/baseurl.json';
-
-			// Check if the files exist
-			const summaryFileExists = fs.existsSync(summaryFilePath);
-			const baseUrlFileExists = fs.existsSync(baseUrlFilePath);
-
-			if (!summaryFileExists) {
-				const defaultSummary = {
-					usage: 'html content sample',
-				};
-
-				fs.writeFileSync('.vscode/summary.json', JSON.stringify(defaultSummary, null, 2));
-			}
-
-			if (!baseUrlFileExists) {
-				const defaultBaseUrl = [
-					{ url: 'example.com', description: 'Example Website' },
-				];
-
-				fs.writeFileSync('.vscode/baseurl.json', JSON.stringify(defaultBaseUrl, null, 2));
-			}
-
-			// Read and parse the JSON files
-			let summaryData;
-			let baseUrlData: server[] = [];
-
-			if (summaryFileExists) {
-				const summaryFileContent = fs.readFileSync(summaryFilePath, 'utf8');
-				try {
-					summaryData = JSON.parse(summaryFileContent);
-				} catch (error) {
-					console.error('Error parsing summary.json:', error);
-				}
-			}
-
-			if (baseUrlFileExists) {
-				const baseUrlFileContent = fs.readFileSync(baseUrlFilePath, 'utf8');
-				try {
-					baseUrlData = JSON.parse(baseUrlFileContent);
-				} catch (error) {
-					console.error('Error parsing baseurl.json:', error);
-				}
-			}
 
 			let items = [] as MyItem[]
 			items = await runner(uriArray);
@@ -361,14 +363,14 @@ async function runner(uriArray: any) {
 						const resultCode = lines.join('\n');
 						if (bodyMethod != '') {
 							if (!isJsonString(bodyMethod)) {
-								// vscode.window.showErrorMessage('Body JSON string!:' + bodyMethod);
+								vscode.window.showErrorMessage('Body JSON string!:' + bodyMethod);
 								bodyMethod = `{}`
 							}
 						}
 
 						if (resMethod != '') {
 							if (!isJsonString(resMethod)) {
-								// vscode.window.showErrorMessage('Res JSON string!:' + resMethod);
+								vscode.window.showErrorMessage('Res JSON string!:' + resMethod);
 								resMethod = `{}`
 							}
 						}
@@ -501,27 +503,24 @@ function showItemList(items: MyItem[], servers: server[], menus: any) {
 	}
 	const html = makeSwagger();
 	fs.writeFileSync(vscodePath + '/auto-summary.html', html);
-	fs.writeFileSync(vscodePath + '/data.js', `var spec={
+	fs.writeFileSync(vscodePath + '/data.js', `const spec={
 		"openapi": "3.0.1",
 			"info": {
 			"version": "1.0.0",
 				"title": "API Specification"
 		},
-		"paths":${JSON.stringify(datas)}},
-		 "servers": ${JSON.stringify(servers)},
-	 "menu": ${JSON.stringify(menus)}
+		
+	 "paths": ${JSON.stringify((datas))},
+  "servers": ${JSON.stringify(servers)},
+  "menu": ${JSON.stringify(JSON.parse(menus))}
+	}
 `);
 
 	// Check if the file exists
 	const filePath = vscodePath + '/auto-summary.html'
 	if (fs.existsSync(filePath)) {
-		// Get the URI of the file
 		const fileUri = vscode.Uri.file(filePath);
-
-		// Convert the URI to a URL
 		const url = fileUri.toString();
-
-		// Open the URL in the user's default web browser
 		vscode.env.openExternal(vscode.Uri.parse(url));
 	} else {
 		vscode.window.showErrorMessage(`File ${filePath} does not exist`);
@@ -529,42 +528,68 @@ function showItemList(items: MyItem[], servers: server[], menus: any) {
 }
 
 function makeSwagger() {
-	var html = `< html >
+	const baseurl = 'https://api-doc-sample.netlify.app/'
+	const html = `
+	<!DOCTYPE html>
+	<html>
 	<head>
 	<meta charset="UTF-8" >
-		<title>Summary < /title>
-		< link rel = "stylesheet" type = "text/css" href = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui.css" >
-			<style>
-    .topbar {
-	display: none;
-}
-</style>
-	< /head>
-	< body >
-	<div id="swagger-ui" > </div>
-		< script src = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-bundle.js" > </script>
-			< script src = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.19.5/swagger-ui-standalone-preset.js" > </script>
-				< script src = "./data.js" > </script>
-					<script>
-window.onload = function () {
-	const ui = SwaggerUIBundle({
-		spec: spec,
-		dom_id: '#swagger-ui',
-		deepLinking: true,
-		presets: [
-			SwaggerUIBundle.presets.apis,
-			SwaggerUIStandalonePreset
-		],
-		plugins: [
-			SwaggerUIBundle.plugins.DownloadUrl
-		],
-		layout: "StandaloneLayout"
-	})
-	window.ui = ui
-}
-	< /script>
-	< /body>
-	< /html>`;
+		<title>Summary </title>
+		 <meta charset="UTF-8">
+  <link rel="stylesheet" type="text/css" href="${baseurl}bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="${baseurl}swagger-ui.css">
+  <link rel="stylesheet" type="text/css" href="${baseurl}custom-swagger-ui.css">
+  <link rel="stylesheet" href="${baseurl}prism.css">
+  <script src="${baseurl}prism.js"></script>
+  <link rel="stylesheet" href="${baseurl}style.css">
+		
+	</head>
+	<body>
+  <ul class="nav nav-tabs" id="tabMenu">
+    <li class="nav-item">
+      <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home">Home</a>
+    </li>
+  </ul>
+  <div class="tab-content" id="tabContent" class="col-md-12">
+    <div class="tab-pane fade show active" id="home">
+      <!-- Home content goes here -->
+      <nav class="navbar navbar-expand-md navbar-light bg-light">
+        <a style="padding-left: 18px;" class="navbar-brand d-flex align-items-center" href="#">
+          <img src="${baseurl}logo.png" style="max-width: 40px; height: auto;" class="logo me-2">
+        </a>
+
+
+        <!-- Search Bar or Burger Menu -->
+        <form class="form-inline my-2 my-md-0" style="padding-right:12px;">
+          <input id="searchInput" class="form-control" type="search" onkeyup="filterAPI();" placeholder="Search"
+            aria-label="Search">
+        </form>
+      </nav>
+
+      <div class="col-md-12 d-flex">
+        <div class="col-md-8">
+          <div id="swagger-ui"></div>
+        </div>
+        <div id="sidebar" class="col-md-4 hidden">
+          <div class="content">
+            <h2>Details</h2>
+            <div class="code-preview">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="${baseurl}jquery-3.5.1.slim.min.js"></script>
+  <script src="${baseurl}bootstrap.min.js"></script>
+  <script src="${baseurl}swagger-ui-bundle.js"> </script>
+  <script src="${baseurl}swagger-ui-standalone-preset.js"> </script>
+  <script src="./data.js"> </script>
+  <script src="${baseurl}init.js"> </script>
+	</body>
+	</html>`;
 	return html;
 }
 
