@@ -54,12 +54,12 @@ for (let i = 0; i < previewCodeElements.length; i++) {
                 ]
               }
             },
-            "expected": `
-{
-  status:true,
-  message:'Connected',
-  data:[{users}]
-}`
+            "expected":
+            {
+              "status": true,
+              "message": 'Connected',
+              "data": [{ "users": "test" }]
+            }
           },
           "404": {
             "description": "Not Found",
@@ -176,7 +176,7 @@ for (let i = 0; i < previewCodeElements.length; i++) {
             }
           }
         },
-       
+
       }
     }
   },
