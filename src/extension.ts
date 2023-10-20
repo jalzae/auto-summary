@@ -311,12 +311,13 @@ async function runner(uriArray: any) {
 						let reqBodyName: any
 						if (reqBodyIndex != -1) {
 							reqBodyName = getContent(fileContent, '()reqBody:');
-
 						}
 
 						let reqParamName: Parameter[] = []
 						if (reqParamIndex != -1) {
-							reqParamName = JSON.parse(getContent(fileContent, '()reqParam:') || '{}')
+							const parameterResult = getContent(fileContent, '()reqParam:')
+							isJsonString(parameterResult || '{}')
+							reqParamName = JSON.parse(parameterResult || '{}')
 						}
 
 						//reqCodeIndex
@@ -409,8 +410,17 @@ async function runner(uriArray: any) {
 						}
 
 						if (descName) item.description = descName
-						if (resCodeData) item.responseCode = JSON.parse(resCodeData)
-						if (reqBodyName) item.requestBody = JSON.parse(reqBodyName)
+
+						if (resCodeData) {
+							isJsonString(resCodeData)
+							item.responseCode = JSON.parse(resCodeData)
+						}
+
+						if (reqBodyName) {
+							isJsonString(reqBodyName)
+							item.requestBody = JSON.parse(reqBodyName)
+						}
+
 						if (reqParamName) item.parameter = reqParamName
 
 						items.push(item)
@@ -466,6 +476,7 @@ export function isJsonString(str: string): boolean {
 		return true;
 	} catch (error) {
 		console.log(error)
+		vscode.window.showErrorMessage('Error Format JSON string!:' + str);
 		return false;
 	}
 }
