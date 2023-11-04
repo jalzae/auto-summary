@@ -607,7 +607,18 @@ function makeSwagger() {
         </div>
       </div>
     </div>
+  </div>
 
+	<button id="flyout-button">X</button>
+  <div id="sidebar-flying">
+    <div id="sidebar-content">
+      <span id="close-button" onclick="closeSidebar()">X</span>
+      <input id="searchInputFlying" class="form-control" type="search" onkeyup="filterAPIFlying();" placeholder="Search"
+        aria-label="Search">
+      <ul id="sidebar-menu">
+        
+      </ul>
+    </div>
   </div>
 
   <script src="${baseurl}jquery-3.5.1.slim.min.js"></script>
