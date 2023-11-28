@@ -8,10 +8,10 @@ export function formatTs(result: any, extension: string) {
   for (const item of result) {
     const fileName = item.title.split("\\").pop(); // get the file name with extension
     const name = fileName.split(".").shift(); // remove the extension and get the name
-    const formatname = name.toLowerCase();
+    const formatname = (name.toLowerCase());
     let content = `export default {`;
     for (const i of item.items) {
-      content += `${formatname}${getLastFunction(i.url)}(`;
+      content += `${renameFile(formatname)}${getLastFunction(i.url)}(`;
       //cek :id
       if (checkIdExist(i.url)) {
         content += `id:any,`;
@@ -49,11 +49,11 @@ export function formatTs(result: any, extension: string) {
     }
     content += `
   }`;
-
     const outputString = item.title
-      .replace(/\\[^\\]+$/, "")
-      .replace(/\\/g, "/");
-    writeIt(extension, outputString, formatname, content);
+      .replace(/^.*[\\\/]/, '')
+      .replace(/\.[^/.]+$/, '');
+
+    writeIt(extension, outputString, name, content);
   }
 }
 
@@ -63,9 +63,9 @@ export function formatDart(result: any, extension: string = "dart") {
     const name = fileName.split(".").shift(); // remove the extension and get the name
     const formatname = name.toLowerCase();
     const className = formatString(item.title);
-    let content = `class  ${capitalize(className)} {`;
+    let content = `class  ${capitalize(removeForwardSlash(className))} {`;
     for (const i of item.items) {
-      content += `static ${formatname}${getLastFunction(i.url)}(`;
+      content += `static ${renameFile(formatname)}${getLastFunction(i.url)}(`;
       //cek :id
       if (checkIdExist(i.url)) {
         content += `String id,`;
@@ -99,6 +99,7 @@ export function formatDart(result: any, extension: string = "dart") {
     }
 
     content += `}`;
+
     const outputString = item.title
       .replace(/\\[^\\]+$/, "")
       .replace(/\\/g, "/");
@@ -108,6 +109,10 @@ export function formatDart(result: any, extension: string = "dart") {
 
 export function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function removeForwardSlash(inputString: string): string {
+  return inputString.replace(/\//g, '');
 }
 
 export function capitalize(str: string): string {
@@ -131,15 +136,16 @@ export function writeIt(
   formatname: string,
   content: string
 ) {
-  const combinedPath =
-    vscode.workspace.workspaceFolders?.[0].uri.fsPath +
-    "/.vscode/" +
-    extension +
-    "/" +
-    outputString;
+  const targetFolder = removeLastPart(formatname);
+  const combinedPath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + "/.vscode/" + extension + "/" + targetFolder;
   // create the directory if it doesn't exist
   createDirectoryPath(combinedPath);
-  fs.writeFileSync(combinedPath + `/${formatname}.${extension}`, content);
+  fs.writeFileSync(combinedPath + `/${renameFile(outputString)}.${extension}`, content);
+}
+
+function removeLastPart(inputString: string): string {
+  const lastSlashIndex = inputString.lastIndexOf('/');
+  return lastSlashIndex !== -1 ? inputString.substring(0, lastSlashIndex) : inputString;
 }
 
 export function checkIdExist(route: string): boolean {
@@ -174,4 +180,9 @@ export function createDirectoryPath(dirPath: string) {
       fs.mkdirSync(currentPath);
     }
   });
+}
+
+export function renameFile(str: string) {
+  return str.replace(/^.*[\\\/]/, '')
+    .replace(/\.[^/.]+$/, '');
 }
