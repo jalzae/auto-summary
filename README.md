@@ -5,6 +5,8 @@ This is the README for extension "document-summary".
 Progress On Update
 - Generating Pretty Document
 - Generate Test with Jest+Axios
+- Add Page with console prompt
+- Dragable document list
 
 ## Features
 
