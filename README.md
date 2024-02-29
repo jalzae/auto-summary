@@ -2,6 +2,10 @@
 
 This is the README for extension "document-summary".
 
+Progress On Update
+- Generating Pretty Document
+- Generate Test with Jest+Axios
+
 ## Features
 
 1. Scan Summary that result webpage contain function summary code
@@ -17,7 +21,7 @@ This is the README for extension "document-summary".
 - //()before:
   ["fungsi"]
 - //()desc: "Gunakan ini untuk deskripsi pada fungsi"
-- //()code: "Gunakan ini diantara code yang ingin ditampilkan"
+- //()code: "Gunakan ini diantara code yang ingin ditampilkan di deskripsi kode"
 - //()SumEnd
   Buat diakhir kode
 
@@ -32,6 +36,7 @@ This is the README for extension "document-summary".
 //()SumMethod:
 //()desc:
 //()SumEnd
+//()code:
 ```
 
 Multiline Code like ()resCode: ()reqBody: and ()reqBody: using multiline comment operator
@@ -59,7 +64,7 @@ Multiline Code like ()resCode: ()reqBody: and ()reqBody: using multiline comment
                 ]
               }
             },
-            expected:{
+            "expected":{
                "userId": 1,
                "id": 2,
                "title": "qui est esse",

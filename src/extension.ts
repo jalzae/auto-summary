@@ -201,6 +201,16 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
+	vscode.commands.registerCommand('document-summary.AddToDocument', () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+
+		const selectedText = editor.document.getText(editor.selection);
+		vscode.window.showInformationMessage(`Selected text: ${selectedText}`);
+	});
+
 	context.subscriptions.push(disposable);
 }
 

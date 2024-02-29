@@ -14,6 +14,15 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "menus": {
+      "editor/context": [
+        {
+          "command": "document-summary.AddToDocument",
+          "group": "navigation",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
@@ -64,6 +73,10 @@
       {
         "command": "document-summary.generateDartSchema",
         "title": "Generate Dart Schema"
+      },
+      {
+        "command": "document-summary.AddToDocument",
+        "title": "Add To Document"
       }
     ]
   },
