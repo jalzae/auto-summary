@@ -7,11 +7,41 @@ import { formatTs, formatDart } from './formatApi'
 import { formatTsModel } from './formatModel'
 import { generate } from './quicktype'
 import { getContent } from './helper'
+import { doc } from './types/document';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
+
+	const summaryFilePath = vsCodePath + '.vscode/summary.json';
+	const baseUrlFilePath = vsCodePath + '.vscode/baseurl.json';
+	const docPath = vsCodePath + '.vscode/document.json';
+
+	const summaryFileExists = fs.existsSync(summaryFilePath);
+	const baseUrlFileExists = fs.existsSync(baseUrlFilePath);
+	const docFileExist = fs.existsSync(docPath);
+
+	if (!docFileExist) {
+		await fs.writeFileSync(docPath, JSON.stringify([], null, 2));
+	}
+
+	if (!summaryFileExists) {
+		const defaultSummary = {
+			usage: 'html content sample',
+		};
+
+		await fs.writeFileSync(summaryFilePath, JSON.stringify(defaultSummary, null, 2));
+	}
+
+	if (!baseUrlFileExists) {
+		const defaultBaseUrl = [
+			{ url: 'example.com', description: 'Example Website' },
+		];
+
+		await fs.writeFileSync(baseUrlFilePath, JSON.stringify(defaultBaseUrl, null, 2));
+	}
+
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (documentSummary: Document) => {
 		vscode.workspace.openTextDocument(documentSummary.realurl).then((doc) => {
 			vscode.window.showTextDocument(doc).then((editor) => {
@@ -90,31 +120,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.commands.registerCommand('document-summary.scanFiles', () => {
 
-
-		const summaryFilePath = vsCodePath + '.vscode/summary.json';
-		const baseUrlFilePath = vsCodePath + '.vscode/baseurl.json';
-
-		// Check if the files exist
-		const summaryFileExists = fs.existsSync(summaryFilePath);
-		const baseUrlFileExists = fs.existsSync(baseUrlFilePath);
-
-		if (!summaryFileExists) {
-
-			const defaultSummary = {
-				usage: 'html content sample',
-			};
-
-			fs.writeFileSync(summaryFilePath, JSON.stringify(defaultSummary, null, 2));
-		}
-
-		if (!baseUrlFileExists) {
-			const defaultBaseUrl = [
-				{ url: 'example.com', description: 'Example Website' },
-			];
-
-			fs.writeFileSync(baseUrlFilePath, JSON.stringify(defaultBaseUrl, null, 2));
-		}
-
 		// Read and parse the JSON files
 		let summaryData: any;
 		let baseUrlData: server[] = [];
@@ -151,6 +156,7 @@ export function activate(context: vscode.ExtensionContext) {
 			});
 		});
 	});
+
 	context.subscriptions.push(vscode.commands.registerCommand('document-summary.generateTsSchema', () => {
 		// get all the files in the workspace
 		generate('typescript', 'ts')
@@ -201,18 +207,64 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 	});
 
-	vscode.commands.registerCommand('document-summary.AddToDocument', () => {
-		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			return;
-		}
+	vscode.commands.registerCommand('document-summary.AddToDocument', async () => {
 
-		const selectedText = editor.document.getText(editor.selection);
-		vscode.window.showInformationMessage(`Selected text: ${selectedText}`);
+		const fileContents = fs.readFileSync(vsCodePath + '.vscode/document.json', 'utf8');
+		const jsonData = JSON.parse(fileContents);
+		const documents = jsonData as doc[]
+
+		vscode.window.showInputBox({
+			prompt: 'Enter the title for the document:',
+			ignoreFocusOut: true
+		}).then(async (title) => {
+			if (!title) {
+				vscode.window.showErrorMessage('Title cannot be empty. Command rejected.');
+				return;
+			}
+
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				return;
+			}
+
+			const selectedText = editor.document.getText(editor.selection);
+			const filePath = editor.document.uri.fsPath;
+			const startLine = editor.document.positionAt(editor.selection.start.line).line;
+			documents.push({
+				title,
+				desc: `${selectedText}`,
+				index: documents.length,
+				realurl: filePath,
+				start: startLine,
+			})
+
+			if (docFileExist) {
+				fs.writeFileSync(docPath, JSON.stringify(documents, null, 2));
+			}
+
+			vscode.window.showInformationMessage(`Document Updated`);
+		});
+	});
+
+	vscode.commands.registerCommand('document-summary.ShowDocument', async () => {
+		const fileContents = fs.readFileSync(vsCodePath + '.vscode/document.json', 'utf8');
+		const jsonData = JSON.parse(fileContents);
+		const documents = jsonData as doc[]
+		const treeDataProvider = new DocumentPreviewProvider(documents);
+		vscode.window.registerTreeDataProvider('documentSummary', treeDataProvider);
+		vscode.commands.executeCommand('setContext', 'documentSummaryTreeViewVisible', true);
+		vscode.window.createTreeView('documentSummary', {
+			treeDataProvider,
+			showCollapseAll: true,
+		});
+
 	});
 
 	context.subscriptions.push(disposable);
 }
+
+vscode.commands.registerCommand('document-summary.deleteItem', (item: doc) => { })
+vscode.commands.registerCommand('document-summary.editItem', (item: doc) => { })
 
 async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
 	const destructed = [] as any;
@@ -681,6 +733,32 @@ class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 	}
 
 	getChildren(element?: Document): Thenable<Document[]> {
+		return Promise.resolve(this.documents);
+	}
+}
+
+class DocumentPreviewProvider implements vscode.TreeDataProvider<doc> {
+	private _onDidChangeTreeData: vscode.EventEmitter<doc | undefined> = new vscode.EventEmitter<doc | undefined>();
+	readonly onDidChangeTreeData: vscode.Event<doc | undefined> = this._onDidChangeTreeData.event;
+
+	constructor(private documents: doc[]) { }
+
+	refresh(): void {
+		this._onDidChangeTreeData.fire(undefined);
+	}
+
+	getTreeItem(element: doc): vscode.TreeItem {
+		const treeItem = new vscode.TreeItem(element.title, vscode.TreeItemCollapsibleState.None);
+		treeItem.description = `${element.title}`;
+		treeItem.command = {
+			command: 'document-summary.openFile',
+			title: 'Open File',
+			arguments: [element]
+		};
+		return treeItem;
+	}
+
+	getChildren(element?: doc): Thenable<doc[]> {
 		return Promise.resolve(this.documents);
 	}
 }

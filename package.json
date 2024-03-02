@@ -21,6 +21,18 @@
           "group": "navigation",
           "when": "editorTextFocus"
         }
+      ],
+      "explorerContext": [
+        {
+          "command": "document-summary.editItem",
+          "when": "documentSummaryItem", 
+          "group": "navigation" 
+        },
+        {
+          "command": "document-summary.deleteItem",
+          "when": "documentSummaryItem",
+          "group": "navigation" 
+        }
       ]
     },
     "views": {
@@ -77,6 +89,18 @@
       {
         "command": "document-summary.AddToDocument",
         "title": "Add To Document"
+      },
+      {
+        "command": "document-summary.ShowDocument",
+        "title": "Show Document"
+      },
+      {
+        "command": "document-summary.deleteItem",
+        "title": "Delete Item"
+      },
+      {
+        "command": "document-summary.editItem",
+        "title": "Delete Item"
       }
     ]
   },
