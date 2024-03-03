@@ -2,7 +2,7 @@
   "name": "document-summary",
   "displayName": "Document Summary",
   "description": "to automate document your function code",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "publisher": "Jalzae",
   "icon": "Safeimagekit-resized-img.png",
   "engines": {
@@ -20,18 +20,23 @@
           "command": "document-summary.AddToDocument",
           "group": "navigation",
           "when": "editorTextFocus"
+        },
+        {
+          "command": "document-summary.generateTsGherkin",
+          "group": "navigation",
+          "when": "editorTextFocus"
         }
       ],
       "explorerContext": [
         {
           "command": "document-summary.editItem",
-          "when": "documentSummaryItem", 
-          "group": "navigation" 
+          "when": "documentSummaryItem",
+          "group": "navigation"
         },
         {
           "command": "document-summary.deleteItem",
           "when": "documentSummaryItem",
-          "group": "navigation" 
+          "group": "navigation"
         }
       ]
     },
@@ -89,6 +94,10 @@
       {
         "command": "document-summary.AddToDocument",
         "title": "Add To Document"
+      },
+      {
+        "command": "document-summary.generateTsGherkin",
+        "title": "Generate Gherkin Test Ts"
       },
       {
         "command": "document-summary.ShowDocument",

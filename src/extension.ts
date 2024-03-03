@@ -8,6 +8,7 @@ import { formatTsModel } from './formatModel'
 import { generate } from './quicktype'
 import { getContent } from './helper'
 import { doc } from './types/document';
+import { excludeGivenLines, validateGherkinScenario } from './gherkin';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
@@ -201,11 +202,69 @@ export async function activate(context: vscode.ExtensionContext) {
 				})
 				makeArray(result);
 			} catch (e) {
-				console.log(e)
+
 			}
 
 		});
 	});
+
+	vscode.commands.registerCommand('document-summary.generateTsGherkin', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+
+		const selectedText = editor.document.getText(editor.selection);
+
+		const result = validateGherkinScenario(selectedText)
+
+		if (!result.status) {
+			return;
+		}
+
+		const filePath = editor.document.uri.fsPath;
+		let index = 0
+		let content = `
+		import assert from "assert";
+		import { Given, When, Then } from "@cucumber/cucumber";
+		`
+		for (const line of result.data) {
+			if (index > 0) {
+				const trimmedLine = line.trim();
+				if (trimmedLine.startsWith('Given')) {
+					const resultLine = excludeGivenLines(trimmedLine, 'Given')
+					content += `
+					Given('${resultLine}', async () => {
+					});`
+				} else if (trimmedLine.startsWith('When')) {
+					const resultLine = excludeGivenLines(trimmedLine, 'When')
+					content += `
+					When('${resultLine}', async () => {
+					});`
+				} else if (trimmedLine.startsWith('Then')) {
+					const resultLine = excludeGivenLines(trimmedLine, 'Then')
+					content += `
+					Then('${resultLine}', async () => {
+					});`
+				}
+			}
+			index++
+		}
+
+		vscode.window.showInputBox({
+			prompt: 'Enter filename',
+			ignoreFocusOut: true
+		}).then(async (title) => {
+			if (!title) {
+				vscode.window.showErrorMessage('Title cannot be empty. Command rejected.');
+				return;
+			}
+			const outputFilePath = path.dirname(filePath) + '/' + title + '.ts'
+			fs.writeFileSync(outputFilePath, content, 'utf-8');
+			console.log(`File generated successfully at: ${title}`);
+		})
+
+	})
 
 	vscode.commands.registerCommand('document-summary.AddToDocument', async () => {
 
