@@ -27,16 +27,23 @@
           "when": "editorTextFocus"
         }
       ],
-      "explorerContext": [
+      "view/title": [
         {
-          "command": "document-summary.editItem",
-          "when": "documentSummaryItem",
+          "command": "documentSummary.refreshEntry",
+          "when": "view == documentSummary",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "documentSummary.editEntry",
+          "when": "view == documentSummary",
+          "group": "inline"
         },
         {
-          "command": "document-summary.deleteItem",
-          "when": "documentSummaryItem",
-          "group": "navigation"
+          "command": "documentSummary.runEntry",
+          "when": "view == documentSummary",
+          "group": "inline"
         }
       ]
     },
@@ -46,7 +53,8 @@
           "id": "documentSummary",
           "name": "Document Summary",
           "when": "documentSummaryTreeViewVisible",
-          "dataProvider": "documentSummary.treeDataProvider"
+          "dataProvider": "documentSummary.treeDataProvider",
+          "icon": "$(terminal)"
         }
       ]
     },
@@ -104,12 +112,19 @@
         "title": "Show Document"
       },
       {
-        "command": "document-summary.deleteItem",
-        "title": "Delete Item"
+        "command": "documentSummary.refreshEntry",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       },
       {
-        "command": "document-summary.editItem",
-        "title": "Delete Item"
+        "command": "documentSummary.editEntry",
+        "title": "Edit",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "documentSummary.runEntry",
+        "title": "Run",
+        "icon": "$(play)"
       }
     ]
   },

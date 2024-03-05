@@ -43,10 +43,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		await fs.writeFileSync(baseUrlFilePath, JSON.stringify(defaultBaseUrl, null, 2));
 	}
 
-	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (documentSummary: Document) => {
-		vscode.workspace.openTextDocument(documentSummary.realurl).then((doc) => {
+	context.subscriptions.push(vscode.commands.registerCommand('document-summary.openFile', (realurl: string, start: number) => {
+		vscode.workspace.openTextDocument(realurl).then((doc) => {
 			vscode.window.showTextDocument(doc).then((editor) => {
-				const position = new vscode.Position(documentSummary.start, 0);
+				const position = new vscode.Position(start, 0);
 				editor.selection = new vscode.Selection(position, position);
 				editor.revealRange(new vscode.Range(position, position));
 			});
@@ -104,23 +104,25 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	const disposable = vscode.commands.registerCommand('documentSummary.showTreeView', () => {
+	context.subscriptions.push(vscode.commands.registerCommand('documentSummary.showTreeView', () => {
 		vscode.workspace.findFiles('**/*').then(async (uriArray) => {
 			let items = [] as MyItem[]
 			// loop through each file
 			items = await runner(uriArray);
+
 			const treeDataProvider = new DocumentSummaryProvider(items);
+
 			vscode.window.registerTreeDataProvider('documentSummary', treeDataProvider);
 			vscode.commands.executeCommand('setContext', 'documentSummaryTreeViewVisible', true);
-			vscode.window.createTreeView('documentSummary', {
+			const treeView = vscode.window.createTreeView('documentSummary', {
 				treeDataProvider,
 				showCollapseAll: true,
 			});
 		});
-	});
+	}));
+
 
 	vscode.commands.registerCommand('document-summary.scanFiles', () => {
-
 		// Read and parse the JSON files
 		let summaryData: any;
 		let baseUrlData: server[] = [];
@@ -319,7 +321,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	});
 
-	context.subscriptions.push(disposable);
 }
 
 vscode.commands.registerCommand('document-summary.deleteItem', (item: doc) => { })
@@ -756,19 +757,19 @@ function makeSwagger() {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
-
-
 interface Document {
-	realurl: string;
-	url: string;
-	function: string;
-	name: string;
-	code: string;
-	route: string;
-	method: string;
-	start: number;
-	end: number;
+	realurl: string
+	url: string
+	function: string
+	name: string
+	code: string
+	route: string
+	method: string
+	start: number
+	end: number
+	collapsed?: boolean
 }
+
 
 class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 	private _onDidChangeTreeData: vscode.EventEmitter<Document | undefined> = new vscode.EventEmitter<Document | undefined>();
@@ -776,25 +777,51 @@ class DocumentSummaryProvider implements vscode.TreeDataProvider<Document> {
 
 	constructor(private documents: Document[]) { }
 
-	refresh(): void {
-		this._onDidChangeTreeData.fire(undefined);
+	addDocument(document: Document): void {
+		const isDuplicate = this.documents.some((doc) => doc.url === document.url);
+
+		if (!isDuplicate) {
+			this.documents.push(document);
+			this._onDidChangeTreeData.fire(undefined);
+		}
 	}
 
-	getTreeItem(element: Document): vscode.TreeItem {
-		const treeItem = new vscode.TreeItem(element.name, vscode.TreeItemCollapsibleState.None);
-		treeItem.description = `${element.url} - @${element.function}`;
+	getTreeItem(element: Document, collapsed: boolean = true): vscode.TreeItem {
+		const treeItem = new vscode.TreeItem(element.name, element.collapsed ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+		treeItem.description = `${element.url}`;
 		treeItem.command = {
 			command: 'document-summary.openFile',
 			title: 'Open File',
-			arguments: [element] // pass the element as an argument to the command
+			arguments: [element.realurl, element.start]
 		};
+
+
 		return treeItem;
 	}
 
 	getChildren(element?: Document): Thenable<Document[]> {
-		return Promise.resolve(this.documents);
+		if (element) {
+			// If it's a child item (expanded), return the hardcoded children
+			const hardcodedChildren: Document[] = this.documents.filter((e: Document) => e.url == element.url);
+			for (let e of hardcodedChildren) {
+				e.url = e.function
+				e.collapsed = false
+			}
+			return Promise.resolve(hardcodedChildren);
+		} else {
+			const uniqueDocuments = this.documents.filter((doc, index, self) =>
+				index === self.findIndex((d) => d.url === doc.url)
+			);
+			for (let e of uniqueDocuments) {
+				e.collapsed = true
+			}
+			return Promise.resolve(uniqueDocuments);
+		}
 	}
 }
+
+
+
 
 class DocumentPreviewProvider implements vscode.TreeDataProvider<doc> {
 	private _onDidChangeTreeData: vscode.EventEmitter<doc | undefined> = new vscode.EventEmitter<doc | undefined>();
@@ -812,7 +839,7 @@ class DocumentPreviewProvider implements vscode.TreeDataProvider<doc> {
 		treeItem.command = {
 			command: 'document-summary.openFile',
 			title: 'Open File',
-			arguments: [element]
+			arguments: [element.realurl, element.start]
 		};
 		return treeItem;
 	}
