@@ -25,6 +25,11 @@
           "command": "document-summary.generateTsGherkin",
           "group": "navigation",
           "when": "editorTextFocus"
+        },
+        {
+          "command": "document-summary.generateDocument",
+          "group": "navigation",
+          "when": "editorTextFocus"
         }
       ],
       "view/title": [
@@ -106,6 +111,10 @@
       {
         "command": "document-summary.generateTsGherkin",
         "title": "Generate Gherkin Test Ts"
+      },
+      {
+        "command": "document-summary.generateDocument",
+        "title": "Generate Document"
       },
       {
         "command": "document-summary.ShowDocument",

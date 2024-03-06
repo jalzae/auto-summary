@@ -268,6 +268,73 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	})
 
+	vscode.commands.registerCommand('document-summary.generateDocument', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			return;
+		}
+
+		const selectedText = editor.document.getText(editor.selection);
+
+		if (!selectedText) {
+			return
+		}
+
+		const nameFunction = await vscode.window.showInputBox({
+			prompt: 'Enter the name function:',
+			ignoreFocusOut: true
+		})
+
+		if (!nameFunction) {
+			return
+		}
+
+		const httpMethods = ['GET', 'POST', 'DELETE', 'PATCH'];
+		const selectedMethod = await vscode.window.showQuickPick(httpMethods, { placeHolder: 'Select HTTP method' });
+
+		if (!selectedMethod) {
+			return
+		}
+
+		const nameRoute = await vscode.window.showInputBox({
+			prompt: 'Enter the route:',
+			ignoreFocusOut: true
+		})
+
+		if (!nameRoute) {
+			return
+		}
+
+		const result = `
+		//()SumStart
+		//()SumFunc: ${nameFunction}
+		//()SumRoute: ${nameRoute}
+		//()SumMethod: ${selectedMethod}
+		//()code:
+		${selectedText}
+		//()code:
+		//()SumEnd
+		`
+		// Get the current selection range
+		const selection = editor.selection;
+
+		// Create a new TextEdit to replace the selection with the result
+		const edit = new vscode.TextEdit(selection, result);
+
+		// Apply the edit
+		const workspaceEdit = new vscode.WorkspaceEdit();
+		workspaceEdit.set(editor.document.uri, [edit]);
+
+		// Apply the changes and show a message
+		vscode.workspace.applyEdit(workspaceEdit).then(success => {
+			if (success) {
+				vscode.window.showInformationMessage('Text replaced successfully.');
+			} else {
+				vscode.window.showErrorMessage('Failed to replace text.');
+			}
+		});
+
+	})
 	vscode.commands.registerCommand('document-summary.AddToDocument', async () => {
 
 		const fileContents = fs.readFileSync(vsCodePath + '.vscode/document.json', 'utf8');
