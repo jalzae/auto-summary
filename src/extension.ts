@@ -9,6 +9,8 @@ import { generate } from './quicktype'
 import { getContent } from './helper'
 import { doc } from './types/document';
 import { excludeGivenLines, validateGherkinScenario } from './gherkin';
+import { htmlTest } from './html/test';
+import { htmlDoc } from './html/doc';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
@@ -335,6 +337,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 
 	})
+
+	vscode.commands.registerCommand('documentSummary.runEntry', async (selectedText: Document) => {
+		const panel = htmlTest(selectedText, context)
+		context.subscriptions.push(panel);
+	})
+
+	vscode.commands.registerCommand('documentSummary.editEntry', async (selectedText: Document) => {
+		const panel = htmlDoc(selectedText, context)
+		context.subscriptions.push(panel);
+	})
+
 	vscode.commands.registerCommand('document-summary.AddToDocument', async () => {
 
 		const fileContents = fs.readFileSync(vsCodePath + '.vscode/document.json', 'utf8');
@@ -824,7 +837,7 @@ function makeSwagger() {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
-interface Document {
+export interface Document {
 	realurl: string
 	url: string
 	function: string
