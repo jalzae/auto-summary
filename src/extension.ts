@@ -338,6 +338,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	})
 
+	vscode.commands.registerCommand('documentSummary.refreshEntry', async (selectedText: Document) => {
+		vscode.commands.executeCommand('documentSummary.showTreeView');
+	})
 	vscode.commands.registerCommand('documentSummary.runEntry', async (selectedText: Document) => {
 		const panel = htmlTest(selectedText, context)
 		context.subscriptions.push(panel);
@@ -401,10 +404,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	});
 
-}
+	context.subscriptions.push(vscode.extensions.onDidChange(() => {
+		// Check if it's your extension
+		const yourExtension = vscode.extensions.getExtension('documentSummary');
+		if (yourExtension) {
+			vscode.commands.executeCommand('documentSummary.showTreeView');
+		}
+	}));
+	
 
-vscode.commands.registerCommand('document-summary.deleteItem', (item: doc) => { })
-vscode.commands.registerCommand('document-summary.editItem', (item: doc) => { })
+}
 
 async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
 	const destructed = [] as any;

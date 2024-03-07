@@ -3,7 +3,7 @@ import { Document } from '../extension';
 export function htmlTest(selectedText: Document, context: vscode.ExtensionContext) {
   const panel = vscode.window.createWebviewPanel(
     'loginPanel',
-    'Testing Scheme',
+    `Test : ${selectedText.function}`,
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -20,7 +20,7 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Testing Scheme</title>
+                <title>Test : ${selectedText.function}</title>
 								 <link rel="icon" type="image/png" href="${faviconUri.toString()}">
 <link rel="stylesheet" href="${cssUri.toString()}" as="style" crossorigin="anonymous">
 <link rel="stylesheet" href="${cssBootstrap.toString()}" as="style" crossorigin="anonymous">
@@ -46,6 +46,7 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
                     <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
                     <option value="DELETE">DELETE</option>
                 </select>
             </div>
@@ -124,11 +125,15 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
 								</div>
 						 <div class="col-md-6">
                 <label for="body" class="form-label">Response</label>
-                <div class="row">
-                <div>Status: <span id="statusColor" class="text-success">200</span></div>
-                <div class="ml-4">Time: <span id="statusColor" class="text-success">200</span></div>
-                <div class="ml-4">Size: <span id="statusColor" class="text-success">200</span></div>
-                </div>
+ <div class="row">
+        <div class="col-12">
+            <div class="d-flex">
+                <div class="col-4">Status: <span id="statusColor" class="text-success">200</span></div>
+                <div class="col-4">Time: <span id="statusColor" class="text-success">200</span></div>
+                <div class="col-4">Size: <span id="statusColor" class="text-success">200</span></div>
+            </div>
+        </div>
+    </div>
                 <ul class="nav nav-tabs">
                     <li class="nav-item">
                         <a class="nav-link active" id="text-tab" data-bs-toggle="tab" href="#text-response">Text</a>

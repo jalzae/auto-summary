@@ -3,7 +3,7 @@ import { Document } from '../extension';
 export function htmlDoc(selectedText: Document, context: vscode.ExtensionContext) {
   const panel = vscode.window.createWebviewPanel(
     'loginPanel',
-    'Testing Scheme',
+    `Doc : ${selectedText.function}`,
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -21,7 +21,7 @@ export function htmlDoc(selectedText: Document, context: vscode.ExtensionContext
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testing Scheme</title>
+                <title>Doc : ${selectedText.function}</title>
 
     <link rel="icon" type="image/png" href="${faviconUri.toString()}">
     <link rel="stylesheet" href="${cssUri.toString()}" as="style" crossorigin="anonymous">
