@@ -57,7 +57,7 @@
         {
           "id": "documentSummary",
           "name": "Document Summary",
-          "when": "documentSummaryTreeViewVisible",
+
           "dataProvider": "documentSummary.treeDataProvider",
           "icon": "$(terminal)"
         }

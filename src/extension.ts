@@ -403,16 +403,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 
 	});
-
-	context.subscriptions.push(vscode.extensions.onDidChange(() => {
-		// Check if it's your extension
-		const yourExtension = vscode.extensions.getExtension('documentSummary');
-		if (yourExtension) {
-			vscode.commands.executeCommand('documentSummary.showTreeView');
-		}
-	}));
 	
-
 }
 
 async function generateTsFunction(items: MyItem[], extension: string = 'ts') {
