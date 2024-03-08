@@ -1,20 +1,23 @@
 import * as vscode from 'vscode'
-import { Document } from '../extension';
+import * as path from 'path';
+import * as fs from 'fs';
+import { Document, vsCodePath } from '../extension';
 export function htmlTest(selectedText: Document, context: vscode.ExtensionContext) {
-  const panel = vscode.window.createWebviewPanel(
-    'loginPanel',
-    `Test : ${selectedText.function}`,
-    vscode.ViewColumn.One,
-    {
-      enableScripts: true,
-    }
-  );
-  const faviconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'favicon.png'));
-  const cssUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'main.css'));
-  const cssBootstrap = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'bootstrap.min.css'));
-  const jsBootstrap = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'bootstrap.bundle.min.js'));
-  const mainJs = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'main.js'));
-  const htmlContent = `
+    const panel = vscode.window.createWebviewPanel(
+        'loginPanel',
+        `Test : ${selectedText.function}`,
+        vscode.ViewColumn.One,
+        {
+            enableScripts: true,
+        }
+    );
+    const faviconUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'favicon.png'));
+    const cssUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'main.css'));
+    const cssBootstrap = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'bootstrap.min.css'));
+    const jsBootstrap = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'bootstrap.bundle.min.js'));
+    const mainJs = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'main.js'));
+    const axiosJs = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'assets', 'axios.js'));
+    const htmlContent = `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -24,8 +27,11 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
 								 <link rel="icon" type="image/png" href="${faviconUri.toString()}">
 <link rel="stylesheet" href="${cssUri.toString()}" as="style" crossorigin="anonymous">
 <link rel="stylesheet" href="${cssBootstrap.toString()}" as="style" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+  
 <script src="${mainJs.toString()}"></script>
 <script src="${jsBootstrap.toString()}"></script>
+<script src="${axiosJs.toString()}"></script>
 
             </head>
             <body>
@@ -33,8 +39,7 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
 						<div class="col-md-4">
                 <label for="method" class="form-label">Base URL</label>
                 <select class="form-select" id="method">
-                    <option>http://localhost:1008</option>
-                    <option>http://localhost:3001</option>
+                ${getBaseURL(context)}  
                 </select>
             </div>
 						</div>
@@ -55,17 +60,15 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
                 <input type="text" class="form-control" value="${selectedText.route}" id="url" placeholder="Enter URL">
             </div>
             <div class="col-md-2">
-											  <label for="go" class="form-label"></label>
+                <label for="go" class="form-label"></label>
                 <button type="button" class="btn btn-primary" onclick="sendRequest()">Go</button>
             </div>
 
         </div>
-
-
     </form>
 
 		 <div class="col-md-12 row">
-		 					<div class="col-md-6">
+            <div class="col-md-6">
               <label for="body" class="form-label">Request Body</label>
                <ul class="nav nav-tabs">
                     <li class="nav-item">
@@ -95,23 +98,95 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
                 <div class="tab-content mt-2">
                     <div class="tab-pane fade show active" id="params">
                         <!-- Content for Params tab -->
-                        <textarea class="form-control" id="params" placeholder="Request Params"></textarea>
+                    <form id="paramsForm">
+                    <div class="key-value-pair">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="key" placeholder="Key">
+                            <input type="text" class="form-control" name="value" placeholder="Value">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-danger" onclick="removeKeyValuePair('paramsForm')">
+                                    <i class="fas fa-trash"></i>
+                            </button>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('paramsForm')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                        </div>
+                    </div>
+                </form>
                     </div>
                     <div class="tab-pane fade" id="header">
-                        <!-- Content for Query tab -->
-                        <textarea class="form-control" id="header" placeholder="Request Header"></textarea>
+                      <form id="headerForm">
+                    <div class="key-value-pair">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="key" placeholder="Key">
+                            <input type="text" class="form-control" name="value" placeholder="Value">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('headerForm')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
                     </div>
                     <div class="tab-pane fade" id="query">
-                        <!-- Content for Query tab -->
-                        <textarea class="form-control" id="query" placeholder="Request Query"></textarea>
+                    <form id="queryForm">
+                    <div class="key-value-pair">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="key" placeholder="Key">
+                            <input type="text" class="form-control" name="value" placeholder="Value">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('queryForm')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
                     </div>
                     <div class="tab-pane fade" id="form-encode">
                         <!-- Content for Form-Encode tab -->
-                        <textarea class="form-control" id="form-encode" placeholder="Request Form-Encode"></textarea>
+                <form id="queryFormEncodeForm">
+                    <div class="key-value-pair">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="key" placeholder="Key">
+                            <input type="text" class="form-control" name="value" placeholder="Value">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('queryForm')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                         <div class="input-group-append mt-4">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('queryForm')">
+                                    <i class="fas fa-file"></i>
+                                </button>
+                            </div>
+                    </div>
+                </form>
                     </div>
                     <div class="tab-pane fade" id="form">
-                        <!-- Content for Form tab -->
-                        <textarea class="form-control" id="form" placeholder="Request Form"></textarea>
+                <form id="formForm">
+                    <div class="key-value-pair">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="key" placeholder="Key">
+                            <input type="text" class="form-control" name="value" placeholder="Value">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('formForm')">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                         <div class="input-group-append mt-4">
+                                <button type="button" class="btn btn-success" onclick="addKeyValuePair('formForm')">
+                                    <i class="fas fa-file"></i>
+                                </button>
+                            </div>
+                    </div>
+                </form>
                     </div>
                     <div class="tab-pane fade" id="json">
                         <!-- Content for JSON tab -->
@@ -174,17 +249,37 @@ export function htmlTest(selectedText: Document, context: vscode.ExtensionContex
             </body>
             </html>
         `;
+    // Set the HTML content for the webview panel
+    panel.webview.html = htmlContent;
+    // Handle disposal of the panel when it's closed
+    panel.onDidDispose(() => {
+        // Do any cleanup here if needed
+    });
 
-  // Assuming you have an HTML file for your panel content
+    return panel
+}
 
+function getBaseURL(context: vscode.ExtensionContext) {
+    const jsonFilePath = vsCodePath + '.vscode/baseurl.json';;
+    if (!fs.existsSync(jsonFilePath)) {
+        // Create the file with default data
+        const defaultData = [
+            {
+                "url": "http://example.com",
+                "description": "Example Website"
+            }
+        ];
 
-  // Set the HTML content for the webview panel
-  panel.webview.html = htmlContent;
+        fs.writeFileSync(jsonFilePath, JSON.stringify(defaultData, null, 2), 'utf-8');
+    }
 
-  // Handle disposal of the panel when it's closed
-  panel.onDidDispose(() => {
-    // Do any cleanup here if needed
-  });
+    // Read baseurl.json file
+    const rawData = fs.readFileSync(jsonFilePath, 'utf-8');
+    const jsonData = JSON.parse(rawData);
+    let selectElement = ''
+    jsonData.forEach((item: { url: string; description: string | null; }) => {
+        selectElement += `<option>${item.url}</option>`;
+    });
+    return selectElement
 
-  return panel
 }

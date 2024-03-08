@@ -37,6 +37,11 @@
           "command": "documentSummary.refreshEntry",
           "when": "view == documentSummary",
           "group": "navigation"
+        },
+        {
+          "command": "documentSummary.configEntry",
+          "when": "view == documentSummary",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -124,6 +129,11 @@
         "command": "documentSummary.refreshEntry",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "documentSummary.configEntry",
+        "title": "Config",
+        "icon": "$(gear)"
       },
       {
         "command": "documentSummary.editEntry",

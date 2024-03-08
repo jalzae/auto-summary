@@ -36,3 +36,20 @@ button {
   padding: 10px;
   cursor: pointer;
 }
+
+ .key-value-pair {
+   margin-bottom: 10px;
+ }
+
+ .input-group {
+   display: flex;
+   padding: 8px;
+ }
+
+ .input-group input {
+  margin-left: 4px;
+ }
+
+ .input-group-append {
+   flex: 0 0 auto;
+ }

@@ -13,7 +13,7 @@ import { htmlTest } from './html/test';
 import { htmlDoc } from './html/doc';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
+export const vsCodePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath + '/'
 
 export async function activate(context: vscode.ExtensionContext) {
 

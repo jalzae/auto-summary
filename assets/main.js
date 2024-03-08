@@ -26,3 +26,27 @@ function openSettings() {
 function saveSettings() {
   popover.hide();
 }
+
+function addKeyValuePair(formId) {
+  const form = document.getElementById(formId);
+  const newPairDiv = createKeyValuePairDiv();
+  form.appendChild(newPairDiv);
+}
+
+function addFileInput(formId) {
+  const form = document.getElementById(formId);
+  const newFileDiv = createFileInputDiv();
+  form.appendChild(newFileDiv);
+}
+
+function removeKeyValuePair(button) {
+  const form = button.closest('form');
+  form.removeChild(button.parentElement.parentElement);
+}
+
+function createKeyValuePairDiv() {
+  const newPairDiv =`
+  `
+
+  return newPairDiv;
+}
