@@ -11,7 +11,9 @@ export function formatTs(result: any, extension: string) {
     const formatname = (name.toLowerCase());
     let content = `export default {`;
     for (const i of item.items) {
-      content += `${renameFile(formatname)}${getLastFunction(i.url)}(`;
+      content += `${renameMethod(formatname)}${capitalizeFirstLetter2(i.method)}`
+      content += checkIdExist(i.url) ? 'byId' : ''
+      content += `(`;
       //cek :id
       if (checkIdExist(i.url)) {
         content += `id:any,`;
@@ -186,3 +188,14 @@ export function renameFile(str: string) {
   return str.replace(/^.*[\\\/]/, '')
     .replace(/\.[^/.]+$/, '');
 }
+
+export function renameMethod(str: string) {
+  return str.replace(/^.*[\\\/]/, '')
+    .replace(/\.[^/.]+$/, '')
+    .replace(/_./g, (match) => match.charAt(1).toUpperCase());
+}
+
+export function capitalizeFirstLetter2(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
