@@ -24,7 +24,10 @@
         {
           "command": "document-summary.generateTsGherkin",
           "group": "navigation",
-          "when": "editorTextFocus"
+          "context": [
+            "editorTextFocus"
+          ],
+          "when": "resourceExtname == .feature"
         },
         {
           "command": "document-summary.generateDocument",
@@ -62,7 +65,6 @@
         {
           "id": "documentSummary",
           "name": "Document Summary",
-
           "dataProvider": "documentSummary.treeDataProvider",
           "icon": "$(terminal)"
         }
