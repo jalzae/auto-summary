@@ -196,6 +196,7 @@ export function renameMethod(str: string) {
 }
 
 export function capitalizeFirstLetter2(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  const lower = str.toLowerCase()
+  return lower.toLowerCase().charAt(0).toUpperCase() + lower.slice(1);
 }
 
