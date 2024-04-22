@@ -67,7 +67,7 @@ export function formatDart(result: any, extension: string = "dart") {
     const className = formatString(item.title);
     let content = `class  ${capitalize(removeForwardSlash(className))} {`;
     for (const i of item.items) {
-      content += `static ${renameFile(formatname)}${getLastFunction(i.url)}(`;
+      content += `static ${renameMethod(formatname) }${capitalizeFirstLetter2(i.method)} (`;
       //cek :id
       if (checkIdExist(i.url)) {
         content += `String id,`;
@@ -87,7 +87,7 @@ export function formatDart(result: any, extension: string = "dart") {
       ) {
         if (checkIdExist(i.url)) {
           const replacedStr = i.url.replace("/:id", `/$id`);
-          content += `"url":"${replacedStr}`;
+          content += `"url":"${replacedStr}"`;
         } else {
           content += `"url":"${i.url}"`;
         }
