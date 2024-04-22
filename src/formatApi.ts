@@ -67,7 +67,9 @@ export function formatDart(result: any, extension: string = "dart") {
     const className = formatString(item.title);
     let content = `class  ${capitalize(removeForwardSlash(className))} {`;
     for (const i of item.items) {
-      content += `static ${renameMethod(formatname) }${capitalizeFirstLetter2(i.method)} (`;
+      content += `static ${renameMethod(formatname)}${capitalizeFirstLetter2(i.method)}`;
+      content += checkIdExist(i.url) ? 'byId' : ''
+      content += `(`;
       //cek :id
       if (checkIdExist(i.url)) {
         content += `String id,`;
